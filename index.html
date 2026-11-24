@@ -1,0 +1,976 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>BookaBite — book · dine · go</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="desktop-backdrop">
+  <div class="phone-frame">
+    <div class="phone-notch"></div>
+
+    <div class="app" id="app">
+
+      <!-- ============ TOP BAR ============ -->
+      <div class="topbar" id="topbar">
+        <button class="tb-btn" id="btnBack" onclick="goBack()" style="display:none;">←</button>
+        <img src="assets/logo/bookabite-logo.png" class="tb-logo" id="tbLogo" alt="BookaBite" onerror="this.style.display='none'">
+        <div class="tb-title" id="tbTitle" style="display:none;"></div>
+        <button class="tb-btn tb-bell" id="btnNotif" onclick="openModal('modalNotifications')">
+          🔔<span class="tb-badge" id="notifBadge" style="display:none;">0</span>
+        </button>
+      </div>
+
+      <!-- ============ TOAST CONTAINER ============ -->
+      <div class="toast-wrap" id="toastWrap"></div>
+
+      <!-- ============ SCREENS ============ -->
+      <div class="screen-scroll" id="scrollArea">
+
+        <!-- ---------- SPLASH / WELCOME ---------- -->
+        <section class="screen" id="screen-splash">
+          <div class="splash-wrap" style="margin:-16px -16px 0; min-height:calc(var(--app-h) - 70px);">
+            <img src="assets/logo/bookabite-logo.png" alt="BookaBite logo" onerror="this.outerHTML='<div style=\'width:130px;height:130px;border-radius:24px;\' class=\'logo-placeholder\'>LOGO<br>assets/logo/</div>'">
+            <div class="tagline">B O O K &nbsp;·&nbsp; D I N E &nbsp;·&nbsp; G O</div>
+            <div class="splash-actions">
+              <button class="btn btn-primary" onclick="go('screen-terms')">Get Started</button>
+              <button class="btn btn-ghost" onclick="skipToHomeExistingUser()">I already have an account</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- ---------- TERMS & CONDITIONS (CUSTOMER) ---------- -->
+        <section class="screen" id="screen-terms">
+          <h2 class="section-title">Terms &amp; Conditions</h2>
+          <div class="card small" style="line-height:1.7; color:var(--gray-700); max-height:48vh; overflow-y:auto;">
+            <p><strong>Terms and Conditions for Customers</strong></p>
+            <p class="mt-8">1. <strong>Use of BookaBite:</strong> BookaBite provides a convenient way to find restaurants, reserve tables, pre-order meals, and make digital payments.</p>
+            <p class="mt-8">2. <strong>Customer Account:</strong> Users must provide accurate information and keep their account and personal details secure.</p>
+            <p class="mt-8">3. <strong>Reservations:</strong> Tables can be reserved by selecting the preferred restaurant, date, time, and number of guests through BookaBite.</p>
+            <p class="mt-8">4. <strong>Food Pre-Ordering:</strong> Meals can be ordered in advance, allowing the restaurant to prepare them before the scheduled visit.</p>
+            <p class="mt-8">5. <strong>Digital Payment:</strong> Partial or full digital payment may be made for reservations and/or pre-ordered meals when available.</p>
+            <p class="mt-8">6. <strong>Digital Receipt:</strong> Digital receipts, reservation confirmations, and order reminders may be sent through the BookaBite website.</p>
+            <p class="mt-8">7. <strong>Customer Information and Privacy Policy:</strong> Personal information will be kept confidential and handled in accordance with the Data Privacy Act of 2012 and other applicable laws.</p>
+            <div class="divider"></div>
+            <p><strong>Conditions</strong></p>
+            <p class="mt-8">1. <strong>Reservation Confirmation:</strong> A booking is considered confirmed once an official confirmation is received from BookaBite.</p>
+            <p class="mt-8">2. <strong>Arrival and No-Show:</strong> Guests are expected to arrive on time, while missed reservations without prior cancellation may be subject to the restaurant's no-show policy.</p>
+            <p class="mt-8">3. <strong>Cancellation:</strong> Reservations or pre-orders may be cancelled according to the restaurant's policy, with a 20% cancellation fee when applicable.</p>
+            <p class="mt-8">4. <strong>Rebooking and Rescheduling:</strong> Bookings may be rebooked or rescheduled depending on availability, with a 2% fee when applicable.</p>
+            <p class="mt-8">5. <strong>Restaurant Menu, Prices, Availability, and Policies:</strong> Menus, prices, table availability, operating hours, and other restaurant policies may change without prior notice.</p>
+            <p class="mt-8">6. <strong>Restaurant Responsibility:</strong> The restaurant is responsible for food quality, preparation, service, and order fulfillment, while BookaBite serves as the platform connecting both parties.</p>
+            <p class="mt-8">7. <strong>Customer Responsibility:</strong> Users are responsible for providing correct information, checking their bookings, arriving on time, following restaurant rules, and treating staff and other guests respectfully.</p>
+            <p class="mt-8">8. <strong>BookaBite Platform Availability:</strong> The platform may occasionally be unavailable due to maintenance, technical issues, internet disruptions, or other circumstances beyond BookaBite's control.</p>
+            <p class="mt-8">9. <strong>Agreement:</strong> Using BookaBite, including making reservations, pre-orders, or payments, means agreeing to these Terms and Conditions.</p>
+            <p class="mt-8 muted">(This is a school project prototype. No real payments, IDs, or personal data are processed.)</p>
+          </div>
+          <label class="checkline mt-16">
+            <input type="checkbox" id="agreeCheck" onchange="document.getElementById('btnAgree').disabled=!this.checked">
+            I have read, understood, and agree to the BookaBite Terms and Conditions.
+          </label>
+          <button class="btn btn-primary mt-20" id="btnAgree" disabled onclick="go('screen-register')">Agree &amp; Continue</button>
+        </section>
+
+        <!-- ---------- REGISTER ---------- -->
+        <section class="screen" id="screen-register">
+          <h2 class="section-title">Create your account</h2>
+          <div class="field">
+            <label>Full Name</label>
+            <input type="text" id="regName" placeholder="Juan Dela Cruz">
+          </div>
+          <div class="field">
+            <label>Mobile Number</label>
+            <input type="tel" id="regMobile" placeholder="09XX XXX XXXX">
+          </div>
+          <div class="field">
+            <label>Email</label>
+            <input type="email" id="regEmail" placeholder="you@email.com">
+          </div>
+          <div class="field" id="ageField">
+            <label>Age</label>
+            <input type="number" id="regAge" placeholder="18" min="1">
+            <p class="error-msg">You must be 18 years old or above to use BookaBite.</p>
+          </div>
+          <div class="field">
+            <label>Date of Birth <span class="muted small">(optional — unlocks your Birthday discount)</span></label>
+            <input type="date" id="regDOB">
+          </div>
+          <button class="btn btn-primary mt-8" onclick="submitRegistration()">Continue</button>
+        </section>
+
+        <!-- ---------- VERIFY: ID UPLOAD ---------- -->
+        <section class="screen" id="screen-verify-id">
+          <h2 class="section-title">Identity Verification</h2>
+          <p class="muted small mt-8" style="margin-bottom:16px;">Upload a valid government ID. This is a simulated step for the prototype — no file is actually processed.</p>
+          <div class="verify-box" id="idUploadBox" onclick="simulateIdUpload()">
+            <div class="vb-icon" id="idBoxIcon">🪪</div>
+            <div id="idBoxText" style="font-weight:700; font-size:13.5px;">Tap to Upload ID</div>
+            <div class="muted small mt-8">JPG, PNG — simulated only</div>
+          </div>
+          <button class="btn btn-primary" id="btnIdContinue" disabled onclick="go('screen-verify-face')">Continue</button>
+        </section>
+
+        <!-- ---------- VERIFY: FACE ---------- -->
+        <section class="screen" id="screen-verify-face">
+          <h2 class="section-title">Facial Verification</h2>
+          <p class="muted small mt-8" style="margin-bottom:6px;">Center your face and start verification. (Simulated — no camera is used.)</p>
+          <div class="face-scan" id="faceScan">🙂</div>
+          <button class="btn btn-primary" id="btnStartFace" onclick="simulateFaceVerify()">Start Verification</button>
+        </section>
+
+        <!-- ---------- VERIFY SUCCESS ---------- -->
+        <section class="screen" id="screen-verify-success">
+          <div class="center mt-20">
+            <div style="font-size:60px;">✅</div>
+            <h2 class="section-title mt-16">Identity Verified</h2>
+            <p class="muted">You're all set, <span id="verifiedName">friend</span>! Welcome to BookaBite.</p>
+          </div>
+          <div class="promo-banner mt-20">
+            <h4>🎉 Welcome Discount — 10% OFF</h4>
+            <p>Your first reservation gets 10% off the food subtotal, automatically applied at checkout.</p>
+          </div>
+          <button class="btn btn-primary mt-8" onclick="enterCustomerApp()">Go to Home</button>
+        </section>
+
+        <!-- ---------- CUSTOMER HOME ---------- -->
+        <section class="screen" id="screen-home">
+          <div class="searchbar" onclick="go('screen-discover')">
+            <span>🔎</span>
+            <input type="text" placeholder="Search restaurants or food" readonly>
+          </div>
+
+          <div id="upcomingResSlot"></div>
+
+          <div class="section-title with-link">
+            <span>Featured Restaurants</span><a onclick="go('screen-discover')">See all</a>
+          </div>
+          <div class="hscroll" id="featuredScroll"></div>
+
+          <div class="section-title with-link mt-16">
+            <span>Popular Food</span><a onclick="go('screen-discover')">See all</a>
+          </div>
+          <div class="hscroll" id="popularFoodScroll"></div>
+
+          <div class="section-title mt-16">Nearby Restaurants</div>
+          <div id="nearbyList"></div>
+        </section>
+
+        <!-- ---------- DISCOVER ---------- -->
+        <section class="screen" id="screen-discover">
+          <h2 class="section-title">Discover Restaurants</h2>
+          <div class="searchbar">
+            <span>🔎</span>
+            <input type="text" id="discoverSearch" placeholder="Search restaurants or food" oninput="renderDiscover()">
+          </div>
+
+          <div class="filter-group">
+            <h5>Cuisine</h5>
+            <div class="chip-set" id="filterCuisine"></div>
+          </div>
+          <div class="filter-group">
+            <h5>Mood</h5>
+            <div class="chip-set" id="filterMood"></div>
+          </div>
+          <div class="filter-group">
+            <h5>Atmosphere / View</h5>
+            <div class="chip-set" id="filterAtmosphere"></div>
+          </div>
+          <div class="filter-group">
+            <h5>Seating Choice</h5>
+            <div class="chip-set" id="filterSeating"></div>
+          </div>
+          <div class="filter-group">
+            <h5>Price Range</h5>
+            <div class="chip-set" id="filterPrice"></div>
+          </div>
+          <button class="btn btn-ghost btn-sm" style="width:auto;" onclick="clearDiscoverFilters()">Clear filters</button>
+
+          <div class="section-title mt-16">Restaurants near you</div>
+          <div id="discoverList"></div>
+        </section>
+
+        <!-- ---------- RESTAURANT DETAIL ---------- -->
+        <section class="screen" id="screen-restaurant-detail">
+          <div class="rd-hero">
+            <img id="rdHeroImg" src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==" alt="">
+          </div>
+          <div class="rd-hero-body">
+            <div class="rd-title-row">
+              <div>
+                <h2 id="rdName" style="font-size:19px;"></h2>
+                <div class="dist" id="rdLocation"></div>
+              </div>
+              <div class="rating" id="rdRating"></div>
+            </div>
+            <div class="tag-row" id="rdTags"></div>
+            <p class="small muted mt-12" id="rdDescription"></p>
+            <p class="small mt-8"><strong>Hours:</strong> <span id="rdHours"></span></p>
+          </div>
+
+          <div class="rd-tabs">
+            <button class="rd-tab active" id="tabMenu" onclick="switchRdTab('menu')">Menu</button>
+            <button class="rd-tab" id="tabAbout" onclick="switchRdTab('about')">About</button>
+            <button class="rd-tab" id="tabReviews" onclick="switchRdTab('reviews')">Reviews</button>
+          </div>
+
+          <div id="rdPaneMenu">
+            <div id="rdMenuList"></div>
+          </div>
+          <div id="rdPaneAbout" style="display:none;">
+            <div class="card">
+              <p class="small" style="line-height:1.7;" id="rdAboutText"></p>
+              <div class="divider"></div>
+              <p class="small"><strong>Seating options:</strong> <span id="rdSeatingOptions"></span></p>
+              <p class="small mt-8"><strong>Price range:</strong> <span id="rdPriceRange"></span></p>
+            </div>
+          </div>
+          <div id="rdPaneReviews" style="display:none;">
+            <div id="rdReviewsList"></div>
+          </div>
+
+          <div id="cartBarSlot"></div>
+        </section>
+
+        <!-- ---------- RESERVATION FORM ---------- -->
+        <section class="screen" id="screen-reservation-form">
+          <h2 class="section-title">Reservation Details</h2>
+          <div class="card">
+            <div class="field mb-0">
+              <label>Number of Diners</label>
+              <div class="stepper">
+                <button onclick="changeDiners(-1)">−</button>
+                <div class="val" id="dinerCount">2</div>
+                <button onclick="changeDiners(1)">+</button>
+              </div>
+            </div>
+          </div>
+          <div class="field">
+            <label>Reservation Date</label>
+            <input type="date" id="resDate">
+          </div>
+          <div class="field">
+            <label>Reservation Time</label>
+            <input type="time" id="resTime" value="19:00">
+          </div>
+          <div class="field">
+            <label>Seating Preference</label>
+            <select id="resSeating"></select>
+          </div>
+
+          <h2 class="section-title mt-16">Your Order</h2>
+          <div id="orderItemsList"></div>
+          <p class="muted small center" id="noItemsMsg" style="display:none; padding:14px;">No food added yet. Go back to the menu to add items.</p>
+
+          <button class="btn btn-primary mt-16" onclick="go('screen-review-reservation')">Review Reservation</button>
+        </section>
+
+        <!-- ---------- REVIEW RESERVATION ---------- -->
+        <section class="screen" id="screen-review-reservation">
+          <h2 class="section-title">Review Reservation</h2>
+          <div class="card">
+            <p class="small muted">Restaurant</p>
+            <h4 id="revRestaurant" style="font-size:15px;"></h4>
+            <div class="divider"></div>
+            <div class="sum-row"><span>Date</span><span id="revDate"></span></div>
+            <div class="sum-row"><span>Time</span><span id="revTime"></span></div>
+            <div class="sum-row"><span>Number of diners</span><span id="revDiners"></span></div>
+            <div class="sum-row"><span>Seating</span><span id="revSeating"></span></div>
+          </div>
+
+          <div class="card">
+            <p class="small muted" style="margin-bottom:8px;">Food Order</p>
+            <div id="revItemsList"></div>
+          </div>
+
+          <div class="section-title with-link" style="font-size:14px;">
+            <span>Promo / Discount</span>
+            <a id="revStackHint" style="display:none;">Stacking allowed</a>
+          </div>
+          <div class="card">
+            <div id="revDiscountPicker"></div>
+            <p class="small muted mt-8">Only one promo applies per reservation, unless an Administrator has enabled promo stacking.</p>
+          </div>
+
+          <div class="card">
+            <div class="sum-row"><span>Food Subtotal</span><span id="revSubtotal"></span></div>
+            <div class="sum-row" id="revDiscountRow" style="display:none;"><span id="revDiscountLabel">Discount</span><span id="revDiscount"></span></div>
+            <div class="sum-row"><span>VAT (12%) <span class="info-dot" onclick="openModal('modalServiceFee')">ⓘ</span></span><span id="revVat"></span></div>
+            <div class="sum-row total"><span>Total Cost</span><span id="revTotal"></span></div>
+            <div class="sum-row"><span>Reservation Fee (50%)</span><span id="revDownPayment"></span></div>
+            <div class="sum-row"><span>Remaining Balance (50%)</span><span id="revRemaining"></span></div>
+          </div>
+
+          <p class="small muted center" style="margin:10px 0 16px;">
+            By continuing you acknowledge the <a onclick="openModal('modalCancellation')" style="color:var(--yellow-dark); font-weight:700;">Cancellation &amp; Rescheduling Policy</a>.
+          </p>
+
+          <button class="btn btn-primary" onclick="go('screen-payment')">Continue to Payment</button>
+        </section>
+
+        <!-- ---------- MOCK PAYMENT ---------- -->
+        <section class="screen" id="screen-payment">
+          <h2 class="section-title">Reservation Fee</h2>
+          <div class="card center">
+            <p class="small muted">Total Cost</p>
+            <h2 id="payTotal" style="font-size:22px;"></h2>
+            <div class="divider"></div>
+            <div class="sum-row"><span>Reservation Fee (50%) — pay now online</span><span id="payDown"></span></div>
+            <div class="sum-row"><span>Remaining Balance (50%) — pay at restaurant</span><span id="payRemaining"></span></div>
+          </div>
+
+          <p class="section-title" style="font-size:14px;">Select Online Payment Method</p>
+          <div id="payMethodList"></div>
+
+          <button class="btn btn-primary mt-16" onclick="confirmMockPayment()">Confirm Mock Payment</button>
+          <p class="muted small center mt-8">Simulated payment — no real payment gateway is integrated in this prototype.</p>
+        </section>
+
+        <!-- ---------- PAYMENT SUCCESS ---------- -->
+        <section class="screen" id="screen-payment-success">
+          <div class="center mt-20">
+            <div style="font-size:60px;">✅</div>
+            <h2 class="section-title mt-16">Payment Successful</h2>
+            <p class="muted">Your reservation has been created and sent to the restaurant.</p>
+          </div>
+          <div class="card mt-20 center">
+            <p class="small muted">Reservation ID</p>
+            <h3 id="successResId" style="font-family:var(--font-display);"></h3>
+            <span class="badge badge-pending mt-8">Pending Restaurant Confirmation</span>
+          </div>
+          <button class="btn btn-primary mt-16" onclick="viewReservationFromSuccess()">Track Reservation</button>
+          <button class="btn btn-outline" onclick="openReceipt(STATE.lastCreatedId)">View Digital Receipt</button>
+          <button class="btn btn-ghost" onclick="enterCustomerApp()">Back to Home</button>
+        </section>
+
+        <!-- ---------- DIGITAL RECEIPT ---------- -->
+        <section class="screen" id="screen-receipt">
+          <div class="card center" style="padding:20px;">
+            <img src="assets/logo/bookabite-logo.png" style="height:34px; margin-bottom:6px;" onerror="this.style.display='none'">
+            <h3 style="font-size:16px;">Digital Receipt</h3>
+            <p class="small muted" id="rcptTxnDate"></p>
+          </div>
+          <div class="card">
+            <div class="sum-row"><span>Restaurant</span><span id="rcptRestaurant"></span></div>
+            <div class="sum-row"><span>Reservation ID</span><span id="rcptResId"></span></div>
+            <div class="sum-row"><span>Customer</span><span id="rcptCustomer"></span></div>
+            <div class="sum-row"><span>Mobile</span><span id="rcptMobile"></span></div>
+            <div class="sum-row"><span>Date &amp; Time</span><span id="rcptDateTime"></span></div>
+            <div class="sum-row"><span>Diners</span><span id="rcptDiners"></span></div>
+          </div>
+          <div class="card">
+            <p class="small muted" style="margin-bottom:8px;">Ordered Food Items</p>
+            <div id="rcptItems"></div>
+          </div>
+          <div class="card">
+            <div class="sum-row"><span>Food Subtotal</span><span id="rcptSubtotal"></span></div>
+            <div class="sum-row" id="rcptDiscountRow" style="display:none;"><span id="rcptDiscountLabel">Discount</span><span id="rcptDiscount"></span></div>
+            <div class="sum-row"><span>VAT (12%)</span><span id="rcptVat"></span></div>
+            <div class="sum-row total"><span>Total Cost</span><span id="rcptTotal"></span></div>
+            <div class="sum-row"><span>Reservation Fee (50%)</span><span id="rcptDown"></span></div>
+            <div class="sum-row"><span>Remaining Balance (50%)</span><span id="rcptRemaining"></span></div>
+          </div>
+          <div class="card">
+            <div class="sum-row"><span>Payment Method</span><span id="rcptMethod"></span></div>
+            <div class="sum-row"><span>Payment Status</span><span id="rcptPayStatus"></span></div>
+            <div class="sum-row"><span>Reservation Status</span><span id="rcptResStatus"></span></div>
+          </div>
+          <p class="small muted center mt-8 mb-16">Simulated digital receipt — no real payment gateway is integrated in this prototype.</p>
+        </section>
+
+        <!-- ---------- CUSTOMER: RESERVATIONS LIST ---------- -->
+        <section class="screen" id="screen-reservations">
+          <h2 class="section-title">My Reservations</h2>
+          <div id="custResList"></div>
+        </section>
+
+        <!-- ---------- CUSTOMER: RESERVATION DETAIL ---------- -->
+        <section class="screen" id="screen-reservation-detail">
+          <div class="card">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+              <div>
+                <p class="small muted">Reservation ID</p>
+                <h3 id="crdId" style="font-family:var(--font-display); font-size:16px;"></h3>
+              </div>
+              <span class="badge" id="crdStatusBadge"></span>
+            </div>
+            <div class="divider"></div>
+            <div class="sum-row"><span>Restaurant</span><span id="crdRestaurant"></span></div>
+            <div class="sum-row"><span>Date</span><span id="crdDate"></span></div>
+            <div class="sum-row"><span>Time</span><span id="crdTime"></span></div>
+            <div class="sum-row"><span>Diners</span><span id="crdDiners"></span></div>
+            <div class="sum-row"><span>Table</span><span id="crdTable"></span></div>
+          </div>
+
+          <div class="card">
+            <p class="small muted" style="margin-bottom:8px;">Food Order</p>
+            <div id="crdItems"></div>
+            <div class="divider"></div>
+            <div class="sum-row"><span>Reservation Fee Paid (50%)</span><span id="crdDown"></span></div>
+            <div class="sum-row"><span>Remaining Balance</span><span id="crdRemaining"></span></div>
+          </div>
+
+          <p class="section-title">Status Tracker</p>
+          <div class="card">
+            <div class="timeline" id="crdTimeline"></div>
+          </div>
+
+          <div id="crdActions" class="mt-16"></div>
+        </section>
+
+        <!-- ---------- RESCHEDULE FORM ---------- -->
+        <section class="screen" id="screen-reschedule-form">
+          <h2 class="section-title">Reschedule Reservation</h2>
+          <div class="field">
+            <label>New Date</label>
+            <input type="date" id="reschDate">
+          </div>
+          <div class="field">
+            <label>New Time</label>
+            <input type="time" id="reschTime">
+          </div>
+          <div class="field mb-0">
+            <label>Number of Diners</label>
+            <div class="stepper">
+              <button onclick="changeReschDiners(-1)">−</button>
+              <div class="val" id="reschDinerCount">2</div>
+              <button onclick="changeReschDiners(1)">+</button>
+            </div>
+          </div>
+          <div class="card mt-16">
+            <p class="small" style="line-height:1.6;">A <strong>2% rescheduling fee</strong> on the total order cost applies once the restaurant confirms availability of your new schedule.</p>
+            <div class="sum-row"><span>Estimated Rescheduling Fee</span><span id="reschFeePreview"></span></div>
+          </div>
+          <button class="btn btn-primary mt-8" onclick="submitReschedule()">Submit Reschedule Request</button>
+        </section>
+
+        <!-- ---------- FEEDBACK FORM ---------- -->
+        <section class="screen" id="screen-feedback-form">
+          <h2 class="section-title">Rate Your Experience</h2>
+          <div class="card center">
+            <div id="starPicker" style="font-size:34px; letter-spacing:6px; cursor:pointer;"></div>
+            <div class="field mt-16 mb-0" style="text-align:left;">
+              <label>Comment</label>
+              <textarea id="feedbackComment" rows="4" placeholder="Tell us about your experience..."></textarea>
+            </div>
+          </div>
+          <button class="btn btn-primary" onclick="submitFeedback()">Submit Feedback</button>
+        </section>
+
+        <!-- ---------- CUSTOMER: ORDERS ---------- -->
+        <section class="screen" id="screen-orders">
+          <h2 class="section-title">My Orders</h2>
+          <div id="custOrdersList"></div>
+        </section>
+
+        <!-- ---------- CUSTOMER: PROFILE ---------- -->
+        <section class="screen" id="screen-profile">
+          <div class="profile-head">
+            <div class="profile-avatar" id="profAvatar">?</div>
+            <div>
+              <h3 id="profName" style="font-size:17px;"></h3>
+              <p class="small muted" id="profEmail"></p>
+              <span class="badge badge-confirmed mt-8" style="margin-top:4px;">✓ Verified</span>
+            </div>
+          </div>
+
+          <div class="promo-banner small">
+            <h4>🎉 Welcome Discount</h4>
+            <p id="profDiscountText">10% OFF your first reservation — auto-applied.</p>
+          </div>
+          <div class="promo-banner small mt-8" style="background:linear-gradient(120deg,#3a2a00,#5c3e00);">
+            <h4>🎂 Birthday Reservation Deal</h4>
+            <p>Book on your birthday month for a free dessert on the house.</p>
+          </div>
+
+          <div class="card mt-16">
+            <div class="list-row" onclick="openModal('modalCancellation')">
+              <div class="lr-left"><span class="lr-icon">📄</span> Cancellation &amp; Rescheduling Policy</div>
+              <span class="lr-chev">›</span>
+            </div>
+            <div class="list-row" onclick="openModal('modalServiceFee')">
+              <div class="lr-left"><span class="lr-icon">💳</span> Fees &amp; VAT Info</div>
+              <span class="lr-chev">›</span>
+            </div>
+            <div class="list-row" onclick="openModal('modalTerms')">
+              <div class="lr-left"><span class="lr-icon">📜</span> Terms &amp; Conditions</div>
+              <span class="lr-chev">›</span>
+            </div>
+            <div class="list-row" style="border-bottom:none;" onclick="openModal('modalDemo')">
+              <div class="lr-left"><span class="lr-icon">🎛️</span> Demo Settings</div>
+              <span class="lr-chev">›</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- =========================================================
+             RESTAURANT DASHBOARD SCREENS
+             ========================================================= -->
+
+        <!-- ---------- R: PARTNER TERMS & CONDITIONS ---------- -->
+        <section class="screen" id="screen-r-terms">
+          <h2 class="section-title">Partner Restaurant Terms &amp; Conditions</h2>
+          <div class="card small" style="line-height:1.7; color:var(--gray-700); max-height:52vh; overflow-y:auto;">
+            <p><strong>Terms and Conditions for Partner Restaurants</strong></p>
+            <p class="mt-8">1. <strong>Accurate Information:</strong> Restaurants must provide accurate and updated information, including operating hours, location, menu, prices, and reservation availability.</p>
+            <p class="mt-8">2. <strong>Reservations:</strong> Restaurants must honor confirmed reservations and promptly inform BookaBite or customers of any changes, cancellations, or closures.</p>
+            <p class="mt-8">3. <strong>Restaurant Responsibility:</strong> Restaurants are responsible for their food, services, staff, facilities, pricing, and overall customer experience.</p>
+            <p class="mt-8">4. <strong>Cancellations &amp; No-Shows:</strong> Any cancellation fees, deposits, or no-show policies must be clearly communicated to customers before booking.</p>
+            <p class="mt-8">5. <strong>Fees &amp; Payments:</strong> Applicable BookaBite fees will be agreed upon by both parties. Unless otherwise stated, customers pay restaurants directly.</p>
+            <p class="mt-8">6. <strong>Promotions &amp; Information Use:</strong> Restaurants allow BookaBite to display their business name, logo, images, menu, and promotional information on the platform.</p>
+            <p class="mt-8">7. <strong>Privacy:</strong> Customer information must be kept confidential and used only for reservations and legitimate customer service purposes.</p>
+            <p class="mt-8">8. <strong>Conduct:</strong> Restaurants must provide honest information and must not engage in fraudulent, discriminatory, abusive, or inappropriate activities.</p>
+            <p class="mt-8">9. <strong>Suspension &amp; Termination:</strong> BookaBite may suspend or terminate a partnership for serious or repeated violations, fraudulent activities, or failure to honor reservations.</p>
+            <p class="mt-8">10. <strong>Acceptance:</strong> By registering as a partner restaurant, the restaurant confirms that it has read, understood, and agreed to these Terms and Conditions.</p>
+          </div>
+          <label class="checkline mt-16">
+            <input type="checkbox" id="rAgreeCheck" onchange="document.getElementById('btnRAgree').disabled=!this.checked">
+            I have read, understood, and agree to the Partner Restaurant Terms and Conditions.
+          </label>
+          <button class="btn btn-primary mt-20" id="btnRAgree" disabled onclick="agreeRestaurantTerms()">Agree &amp; Continue</button>
+        </section>
+
+        <!-- ---------- R: DASHBOARD ---------- -->
+        <section class="screen" id="screen-r-dashboard">
+          <h2 class="section-title">Dashboard</h2>
+          <div class="card" style="display:flex; align-items:center; gap:12px; padding:12px;">
+            <img id="rDashLogo" src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==" style="width:44px;height:44px;border-radius:12px;object-fit:cover;">
+            <div>
+              <h4 style="font-size:14.5px;" id="rDashName"></h4>
+              <p class="small muted">Managing this restaurant's BookaBite account</p>
+            </div>
+          </div>
+
+          <div class="stat-grid mt-16">
+            <div class="stat-card accent">
+              <div class="stat-num" id="statPending">0</div>
+              <div class="stat-label">Pending Reservations</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-num" id="statConfirmed">0</div>
+              <div class="stat-label">Confirmed</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-num" id="statToday">0</div>
+              <div class="stat-label">Today's Customers</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-num" id="statRating">–</div>
+              <div class="stat-label">Average Rating</div>
+            </div>
+          </div>
+
+          <div class="section-title with-link"><span>Recent Notifications</span><a onclick="go('screen-r-reservations')">View reservations</a></div>
+          <div id="rDashNotifList"></div>
+        </section>
+
+        <!-- ---------- R: RESERVATIONS LIST ---------- -->
+        <section class="screen" id="screen-r-reservations">
+          <h2 class="section-title">Reservations</h2>
+          <div class="filter-chip-row" id="rResFilterRow">
+            <button class="filter-chip active" data-f="all" onclick="setRResFilter('all')">All</button>
+            <button class="filter-chip" data-f="pending" onclick="setRResFilter('pending')">Pending</button>
+            <button class="filter-chip" data-f="confirmed" onclick="setRResFilter('confirmed')">Confirmed</button>
+            <button class="filter-chip" data-f="reschedule_requested" onclick="setRResFilter('reschedule_requested')">Reschedule</button>
+            <button class="filter-chip" data-f="cancelled" onclick="setRResFilter('cancelled')">Cancelled</button>
+            <button class="filter-chip" data-f="declined" onclick="setRResFilter('declined')">Declined</button>
+            <button class="filter-chip" data-f="completed" onclick="setRResFilter('completed')">Completed</button>
+          </div>
+          <div id="rResList"></div>
+        </section>
+
+        <!-- ---------- R: RESERVATION DETAIL ---------- -->
+        <section class="screen" id="screen-r-reservation-detail">
+          <div class="card">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+              <div>
+                <p class="small muted">Reservation ID</p>
+                <h3 id="rrdId" style="font-family:var(--font-display); font-size:16px;"></h3>
+              </div>
+              <span class="badge" id="rrdStatusBadge"></span>
+            </div>
+            <div class="divider"></div>
+            <div class="sum-row"><span>Customer</span><span id="rrdCustomer"></span></div>
+            <div class="sum-row"><span>Mobile</span><span id="rrdMobile"></span></div>
+            <div class="sum-row"><span>Date</span><span id="rrdDate"></span></div>
+            <div class="sum-row"><span>Time</span><span id="rrdTime"></span></div>
+            <div class="sum-row"><span>Diners</span><span id="rrdDiners"></span></div>
+            <div class="sum-row"><span>Seating pref.</span><span id="rrdSeating"></span></div>
+          </div>
+
+          <div class="card">
+            <p class="small muted" style="margin-bottom:8px;">Food Order</p>
+            <div id="rrdItems"></div>
+            <div class="divider"></div>
+            <div class="sum-row"><span>Total</span><span id="rrdTotal"></span></div>
+            <div class="sum-row"><span>Reservation Fee (50%)</span><span id="rrdDown"></span></div>
+            <div class="sum-row"><span>Remaining Balance (50%)</span><span id="rrdRemaining"></span></div>
+            <div class="sum-row"><span>Payment Method</span><span id="rrdMethod"></span></div>
+          </div>
+
+          <div id="rrdActionZone"></div>
+        </section>
+
+        <!-- ---------- R: MENU MANAGEMENT ---------- -->
+        <section class="screen" id="screen-r-menu">
+          <div class="section-title with-link">
+            <span>Menu Management</span>
+            <a onclick="openMenuForm(null)">+ Add Food</a>
+          </div>
+          <div id="rMenuList"></div>
+        </section>
+
+        <!-- ---------- R: RESTAURANT PROFILE ---------- -->
+        <section class="screen" id="screen-r-restaurant">
+          <h2 class="section-title">Restaurant Profile</h2>
+
+          <div class="field">
+            <label>Managing which restaurant? (demo)</label>
+            <select id="rActiveRestaurantSelect" onchange="switchActiveRestaurant(this.value)"></select>
+          </div>
+
+          <div class="field"><label>Restaurant Name</label><input type="text" id="rpName"></div>
+          <div class="field"><label>Description</label><textarea id="rpDescription" rows="3"></textarea></div>
+          <div class="field"><label>Location</label><input type="text" id="rpLocation"></div>
+          <div class="field"><label>Contact Number</label><input type="text" id="rpContact"></div>
+          <div class="field"><label>Opening Hours</label><input type="text" id="rpHours"></div>
+          <div class="field"><label>Cuisine</label><input type="text" id="rpCuisine"></div>
+          <div class="field"><label>Seating Options (comma separated)</label><input type="text" id="rpSeating"></div>
+
+          <button class="btn btn-primary" onclick="saveRestaurantProfile()">Save Changes</button>
+
+          <div class="divider"></div>
+          <div class="list-row" onclick="go('screen-r-partnership')">
+            <div class="lr-left"><span class="lr-icon">🤝</span> Restaurant Partnership / Onboarding</div>
+            <span class="lr-chev">›</span>
+          </div>
+          <div class="list-row" style="border-bottom:none;" onclick="openModal('modalDemo')">
+            <div class="lr-left"><span class="lr-icon">🎛️</span> Demo Settings</div>
+            <span class="lr-chev">›</span>
+          </div>
+        </section>
+
+        <!-- ---------- R: SUBSCRIPTION ---------- -->
+        <section class="screen" id="screen-r-subscription">
+          <h2 class="section-title">Subscription</h2>
+          <div class="sub-card">
+            <div class="sub-price">₱3,000</div>
+            <div class="sub-period">per year</div>
+          </div>
+          <div class="card" id="subStatusCard"></div>
+          <button class="btn btn-primary" id="btnPaySub" onclick="paySubscription()">Pay Annual Subscription (Mock)</button>
+          <div class="card mt-16">
+            <p class="small muted" style="margin-bottom:8px;">What's included</p>
+            <p class="small">• Listing on BookaBite Discover<br>• Unlimited reservations &amp; menu items<br>• Customer notifications &amp; reviews<br>• Reservation &amp; payment dashboard</p>
+          </div>
+        </section>
+
+        <!-- ---------- R: PARTNERSHIP WORKFLOW ---------- -->
+        <section class="screen" id="screen-r-partnership">
+          <h2 class="section-title">Restaurant Partnership</h2>
+          <p class="muted small mt-8" style="margin-bottom:16px;">How a restaurant becomes a BookaBite partner:</p>
+          <div id="partnershipSteps"></div>
+        </section>
+
+        <!-- =========================================================
+             ADMINISTRATOR SCREENS
+             ========================================================= -->
+
+        <!-- ---------- A: DASHBOARD ---------- -->
+        <section class="screen" id="screen-a-dashboard">
+          <h2 class="section-title">Administrator Overview</h2>
+          <div class="stat-grid mt-8">
+            <div class="stat-card accent"><div class="stat-num" id="aStatPending">0</div><div class="stat-label">Pending Review</div></div>
+            <div class="stat-card"><div class="stat-num" id="aStatConfirmed">0</div><div class="stat-label">Confirmed</div></div>
+            <div class="stat-card"><div class="stat-num" id="aStatResch">0</div><div class="stat-label">Reschedule Requests</div></div>
+            <div class="stat-card"><div class="stat-num" id="aStatCancelled">0</div><div class="stat-label">Cancelled</div></div>
+            <div class="stat-card"><div class="stat-num" id="aStatCompleted">0</div><div class="stat-label">Completed</div></div>
+            <div class="stat-card"><div class="stat-num" id="aStatRestaurants">0</div><div class="stat-label">Partner Restaurants</div></div>
+          </div>
+
+          <div class="card mt-16">
+            <p class="small muted" style="margin-bottom:8px;">Platform Revenue (Reservation Fees Collected)</p>
+            <h3 id="aRevenueTotal" style="font-size:20px;"></h3>
+          </div>
+
+          <div class="section-title with-link mt-16"><span>Recent Activity</span><a onclick="navTo('screen-a-reservations')">View all reservations</a></div>
+          <div id="aDashNotifList"></div>
+        </section>
+
+        <!-- ---------- A: ALL RESERVATIONS ---------- -->
+        <section class="screen" id="screen-a-reservations">
+          <h2 class="section-title">All Reservations</h2>
+          <div class="filter-chip-row" id="aResFilterRow">
+            <button class="filter-chip active" data-f="all" onclick="setAdminResFilter('all')">All</button>
+            <button class="filter-chip" data-f="pending" onclick="setAdminResFilter('pending')">Pending</button>
+            <button class="filter-chip" data-f="confirmed" onclick="setAdminResFilter('confirmed')">Confirmed</button>
+            <button class="filter-chip" data-f="declined" onclick="setAdminResFilter('declined')">Declined</button>
+            <button class="filter-chip" data-f="reschedule_requested" onclick="setAdminResFilter('reschedule_requested')">Reschedule</button>
+            <button class="filter-chip" data-f="cancelled" onclick="setAdminResFilter('cancelled')">Cancelled</button>
+            <button class="filter-chip" data-f="completed" onclick="setAdminResFilter('completed')">Completed</button>
+          </div>
+          <div id="aResList"></div>
+        </section>
+
+        <!-- ---------- A: RESERVATION DETAIL ---------- -->
+        <section class="screen" id="screen-a-reservation-detail">
+          <div class="card">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+              <div>
+                <p class="small muted">Reservation ID</p>
+                <h3 id="ardId" style="font-family:var(--font-display); font-size:16px;"></h3>
+              </div>
+              <span class="badge" id="ardStatusBadge"></span>
+            </div>
+            <div class="divider"></div>
+            <div class="sum-row"><span>Restaurant</span><span id="ardRestaurant"></span></div>
+            <div class="sum-row"><span>Customer</span><span id="ardCustomer"></span></div>
+            <div class="sum-row"><span>Mobile</span><span id="ardMobile"></span></div>
+            <div class="sum-row"><span>Date</span><span id="ardDate"></span></div>
+            <div class="sum-row"><span>Time</span><span id="ardTime"></span></div>
+            <div class="sum-row"><span>Diners</span><span id="ardDiners"></span></div>
+          </div>
+          <div class="card">
+            <div class="sum-row"><span>Total Cost</span><span id="ardTotal"></span></div>
+            <div class="sum-row"><span>Reservation Fee (50%)</span><span id="ardDown"></span></div>
+            <div class="sum-row"><span>Remaining Balance (50%)</span><span id="ardRemaining"></span></div>
+            <div class="sum-row"><span>Payment Method</span><span id="ardMethod"></span></div>
+          </div>
+          <div class="field" id="ardDeclineReasonField" style="display:none;">
+            <label>Reason for Decline</label>
+            <textarea id="ardDeclineReason" rows="2" placeholder="e.g. No available table for this schedule"></textarea>
+          </div>
+          <div id="ardActionZone"></div>
+        </section>
+
+        <!-- ---------- A: PARTNER RESTAURANTS ---------- -->
+        <section class="screen" id="screen-a-restaurants">
+          <h2 class="section-title">Partner Restaurants</h2>
+          <div id="aRestaurantList"></div>
+        </section>
+
+        <!-- ---------- A: ACCOUNTS ---------- -->
+        <section class="screen" id="screen-a-accounts">
+          <h2 class="section-title">Accounts</h2>
+          <div class="section-title" style="font-size:14px;">Customer Accounts</div>
+          <div id="aCustomerAccounts"></div>
+          <div class="section-title mt-16" style="font-size:14px;">Restaurant Accounts</div>
+          <div id="aRestaurantAccounts"></div>
+        </section>
+
+        <!-- ---------- A: REPORTS & SETTINGS ---------- -->
+        <section class="screen" id="screen-a-reports">
+          <h2 class="section-title">Reports &amp; Statistics</h2>
+          <div class="card">
+            <div class="sum-row"><span>Total Reservations</span><span id="arTotalRes"></span></div>
+            <div class="sum-row"><span>Total Rebookings / Reschedules</span><span id="arTotalResch"></span></div>
+            <div class="sum-row"><span>Total Cancellations</span><span id="arTotalCancel"></span></div>
+            <div class="sum-row"><span>Total Food Sales (Subtotal)</span><span id="arTotalSales"></span></div>
+            <div class="sum-row"><span>Total VAT Collected</span><span id="arTotalVat"></span></div>
+            <div class="sum-row"><span>Total Discounts Given</span><span id="arTotalDiscount"></span></div>
+            <div class="sum-row total"><span>Reservation Fees Collected</span><span id="arTotalFees"></span></div>
+          </div>
+
+          <div class="section-title mt-16" style="font-size:14px;">Promotions</div>
+          <div class="card">
+            <div class="list-row" style="border-bottom:none; cursor:pointer;" onclick="toggleStacking()">
+              <div class="lr-left"><span class="lr-icon">🎟️</span> Allow Promo Stacking</div>
+              <span class="badge" id="aStackingBadge"></span>
+            </div>
+          </div>
+
+          <div class="section-title mt-16" style="font-size:14px;">Platform Configuration</div>
+          <div class="card">
+            <div class="sum-row"><span>VAT Rate</span><span>12%</span></div>
+            <div class="sum-row"><span>Reservation Fee Rate</span><span>50%</span></div>
+            <div class="sum-row"><span>Cancellation Fee Rate</span><span>20%</span></div>
+            <div class="sum-row"><span>Rescheduling Fee Rate</span><span>2%</span></div>
+          </div>
+        </section>
+
+      </div>
+
+      <!-- ============ BOTTOM NAV — CUSTOMER ============ -->
+      <div class="bottom-nav hidden" id="navCustomer">
+        <button class="nav-item" data-screen="screen-home" onclick="navTo('screen-home')"><span class="nav-icon">🏠</span>Home</button>
+        <button class="nav-item" data-screen="screen-discover" onclick="navTo('screen-discover')"><span class="nav-icon">🔎</span>Discover</button>
+        <button class="nav-item" data-screen="screen-reservations" onclick="navTo('screen-reservations')"><span class="nav-icon">📅</span>Reservations</button>
+        <button class="nav-item" data-screen="screen-orders" onclick="navTo('screen-orders')"><span class="nav-icon">🛒</span>Orders</button>
+        <button class="nav-item" data-screen="screen-profile" onclick="navTo('screen-profile')"><span class="nav-icon">👤</span>Profile</button>
+      </div>
+
+      <!-- ============ BOTTOM NAV — RESTAURANT ============ -->
+      <div class="bottom-nav hidden" id="navRestaurant">
+        <button class="nav-item" data-screen="screen-r-dashboard" onclick="navTo('screen-r-dashboard')"><span class="nav-icon">🏠</span>Dashboard</button>
+        <button class="nav-item" data-screen="screen-r-reservations" onclick="navTo('screen-r-reservations')"><span class="nav-icon">📋</span>Reservations</button>
+        <button class="nav-item" data-screen="screen-r-menu" onclick="navTo('screen-r-menu')"><span class="nav-icon">🍴</span>Menu</button>
+        <button class="nav-item" data-screen="screen-r-restaurant" onclick="navTo('screen-r-restaurant')"><span class="nav-icon">🏪</span>Restaurant</button>
+        <button class="nav-item" data-screen="screen-r-subscription" onclick="navTo('screen-r-subscription')"><span class="nav-icon">💳</span>Subscription</button>
+      </div>
+
+      <!-- ============ BOTTOM NAV — ADMINISTRATOR ============ -->
+      <div class="bottom-nav hidden" id="navAdmin">
+        <button class="nav-item" data-screen="screen-a-dashboard" onclick="navTo('screen-a-dashboard')"><span class="nav-icon">🏠</span>Dashboard</button>
+        <button class="nav-item" data-screen="screen-a-reservations" onclick="navTo('screen-a-reservations')"><span class="nav-icon">📋</span>Reservations</button>
+        <button class="nav-item" data-screen="screen-a-restaurants" onclick="navTo('screen-a-restaurants')"><span class="nav-icon">🏪</span>Restaurants</button>
+        <button class="nav-item" data-screen="screen-a-accounts" onclick="navTo('screen-a-accounts')"><span class="nav-icon">👥</span>Accounts</button>
+        <button class="nav-item" data-screen="screen-a-reports" onclick="navTo('screen-a-reports')"><span class="nav-icon">📊</span>Reports</button>
+      </div>
+
+      <!-- ============ DEMO FAB ============ -->
+      <button class="demo-fab" onclick="openModal('modalDemo')">🎛️ Demo</button>
+
+      <!-- ============ MODALS ============ -->
+
+      <!-- Demo role switcher / reset -->
+      <div class="modal-overlay" id="modalDemo">
+        <div class="modal-sheet">
+          <div class="modal-grip"></div>
+          <div class="modal-head"><h3>Demo Controls</h3><button class="modal-close" onclick="closeModal('modalDemo')">✕</button></div>
+          <p class="small muted" style="margin-bottom:12px;">Demo As:</p>
+          <div class="btn-row" style="margin-bottom:18px; flex-wrap:wrap;">
+            <button class="btn btn-outline" onclick="setRole('customer')">👤 Customer</button>
+            <button class="btn btn-outline" onclick="setRole('restaurant')">🍽️ Restaurant</button>
+            <button class="btn btn-outline" onclick="setRole('admin')">🛡️ Administrator</button>
+          </div>
+          <div class="divider"></div>
+          <button class="btn btn-dark mt-12" onclick="loadSampleData(true)">Load Sample Data</button>
+          <button class="btn btn-danger mt-12" onclick="resetDemo()">Reset Demo</button>
+        </div>
+      </div>
+
+      <!-- Notifications -->
+      <div class="modal-overlay" id="modalNotifications">
+        <div class="modal-sheet">
+          <div class="modal-grip"></div>
+          <div class="modal-head"><h3>Notifications</h3><button class="modal-close" onclick="closeModal('modalNotifications')">✕</button></div>
+          <div id="notifList"></div>
+        </div>
+      </div>
+
+      <!-- Reservation Fee / VAT info -->
+      <div class="modal-overlay" id="modalServiceFee">
+        <div class="modal-sheet modal-sheet-center center" style="border-radius:22px; max-width:340px; margin:auto 14px;">
+          <div class="modal-head"><h3>Fees &amp; VAT</h3><button class="modal-close" onclick="closeModal('modalServiceFee')">✕</button></div>
+          <p class="small" style="text-align:left; line-height:1.7;">Your total already includes 12% VAT on the (discounted) food subtotal. To confirm a reservation, BookaBite collects a <strong>50% Reservation Fee</strong> online; the remaining <strong>50% Remaining Balance</strong> is paid directly to the restaurant upon arrival.</p>
+        </div>
+      </div>
+
+      <!-- Cancellation policy -->
+      <div class="modal-overlay" id="modalCancellation">
+        <div class="modal-sheet">
+          <div class="modal-grip"></div>
+          <div class="modal-head"><h3>Cancellation &amp; Rescheduling Policy</h3><button class="modal-close" onclick="closeModal('modalCancellation')">✕</button></div>
+          <p class="small" style="line-height:1.75;">Once a reservation has been confirmed and payment has been made, cancellation is subject to the applicable BookaBite and restaurant conditions. Customers may request rescheduling when available.</p>
+          <div class="card mt-16">
+            <p class="small"><strong>Cancellation:</strong> A 20% cancellation fee applies to the total order cost when a confirmed reservation is cancelled.</p>
+            <p class="small mt-8"><strong>Rescheduling:</strong> A 2% rescheduling fee applies to the total order cost, subject to the restaurant checking availability of the new schedule.</p>
+            <p class="small mt-8"><strong>No-shows:</strong> The Reservation Fee is forfeited.</p>
+            <p class="small mt-8"><strong>Extensions:</strong> First hour extension is free. Additional extensions may be subject to a fee.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Terms modal (reusable) -->
+      <div class="modal-overlay" id="modalTerms">
+        <div class="modal-sheet">
+          <div class="modal-grip"></div>
+          <div class="modal-head"><h3>Terms &amp; Conditions</h3><button class="modal-close" onclick="closeModal('modalTerms')">✕</button></div>
+          <p class="small" style="line-height:1.75;">By using BookaBite you agree that: a 50% reservation fee is required online to confirm a booking, with the remaining 50% paid at the restaurant; cancellations carry a 20% fee and rescheduling a 2% fee on the total order cost, when applicable; menus, prices and availability may change without notice; and account holders must be 18+ with a verified identity. Personal information is handled per the Data Privacy Act of 2012. This is a school project prototype; no real payments or data are processed.</p>
+        </div>
+      </div>
+
+      <!-- Table availability (restaurant side) -->
+      <div class="modal-overlay" id="modalTableAvail">
+        <div class="modal-sheet">
+          <div class="modal-grip"></div>
+          <div class="modal-head"><h3>Table Availability</h3><button class="modal-close" onclick="closeModal('modalTableAvail')">✕</button></div>
+          <div class="table-grid" id="tableGrid"></div>
+          <div class="field mb-0 mt-8">
+            <label>Reason (required if declining)</label>
+            <textarea id="tableDeclineReason" rows="2" placeholder="e.g. No suitable table available for this schedule"></textarea>
+          </div>
+          <div class="btn-row mt-16">
+            <button class="btn btn-danger" onclick="declineReservation()">Decline Reservation</button>
+            <button class="btn btn-primary" id="btnConfirmTable" disabled onclick="confirmReservationWithTable()">Confirm Reservation</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Reschedule approve/decline (restaurant side) -->
+      <div class="modal-overlay" id="modalReschReview">
+        <div class="modal-sheet modal-sheet-center" style="border-radius:22px; max-width:340px; margin:auto 14px;">
+          <div class="modal-head"><h3>Reschedule Request</h3><button class="modal-close" onclick="closeModal('modalReschReview')">✕</button></div>
+          <div id="reschReviewBody" class="small" style="line-height:1.7;"></div>
+          <div class="field mb-0 mt-8">
+            <label>Reason (required if declining)</label>
+            <textarea id="reschDeclineReason" rows="2" placeholder="e.g. Requested time is not available"></textarea>
+          </div>
+          <div class="btn-row mt-16">
+            <button class="btn btn-danger" onclick="respondReschedule(false)">Decline</button>
+            <button class="btn btn-primary" onclick="respondReschedule(true)">Check Availability &amp; Approve</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Add/Edit menu item -->
+      <div class="modal-overlay" id="modalMenuForm">
+        <div class="modal-sheet">
+          <div class="modal-grip"></div>
+          <div class="modal-head"><h3 id="menuFormTitle">Add Food</h3><button class="modal-close" onclick="closeModal('modalMenuForm')">✕</button></div>
+          <input type="hidden" id="menuFormId">
+          <div class="field"><label>Food Name</label><input type="text" id="menuFormName"></div>
+          <div class="field"><label>Description</label><input type="text" id="menuFormDesc"></div>
+          <div class="field"><label>Price (₱)</label><input type="number" id="menuFormPrice"></div>
+          <div class="field"><label>Category</label>
+            <select id="menuFormCategory">
+              <option>Main</option><option>Appetizer</option><option>Dessert</option><option>Drinks</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Image path</label>
+            <input type="text" id="menuFormImage" placeholder="assets/menu/your-food.jpg">
+            <p class="hint">Place your image in the assets/menu folder and type its filename here.</p>
+          </div>
+          <div class="field mb-0">
+            <label class="checkline"><input type="checkbox" id="menuFormAvailable" checked> Available</label>
+          </div>
+          <button class="btn btn-primary mt-16" onclick="saveMenuItem()">Save Food Item</button>
+        </div>
+      </div>
+
+      <!-- Cancel reservation confirm -->
+      <div class="modal-overlay" id="modalCancelConfirm">
+        <div class="modal-sheet modal-sheet-center" style="border-radius:22px; max-width:340px; margin:auto 14px;">
+          <div class="modal-head"><h3>Cancel Reservation?</h3><button class="modal-close" onclick="closeModal('modalCancelConfirm')">✕</button></div>
+          <p class="small" style="line-height:1.7;">Cancelling a reservation applies a 20% cancellation fee on the total order cost, per BookaBite's Terms and Conditions.</p>
+          <div class="sum-row"><span>Total Cost</span><span id="cancTotal"></span></div>
+          <div class="sum-row"><span>Cancellation Fee (20%)</span><span id="cancFee"></span></div>
+          <div class="sum-row total"><span>Refundable Amount</span><span id="cancRefund"></span></div>
+          <div class="btn-row mt-16">
+            <button class="btn btn-outline" onclick="closeModal('modalCancelConfirm')">Keep Reservation</button>
+            <button class="btn btn-danger" onclick="confirmCancelReservation()">Confirm Cancellation</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Remaining payment modal -->
+      <div class="modal-overlay" id="modalRemainingPay">
+        <div class="modal-sheet modal-sheet-center" style="border-radius:22px; max-width:340px; margin:auto 14px;">
+          <div class="modal-head"><h3>Remaining Payment</h3><button class="modal-close" onclick="closeModal('modalRemainingPay')">✕</button></div>
+          <div class="sum-row"><span>Total</span><span id="rpayTotal"></span></div>
+          <div class="sum-row"><span>Reservation Fee Paid (50%)</span><span id="rpayDown"></span></div>
+          <div class="sum-row total"><span>Remaining</span><span id="rpayRemaining"></span></div>
+          <button class="btn btn-primary mt-16" onclick="confirmRemainingPayment()">Confirm Remaining Payment</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
