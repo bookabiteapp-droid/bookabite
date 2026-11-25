@@ -125,7 +125,7 @@ input,select,textarea{font-family:var(--font-body);}
   flex:1; font-size:17px; font-weight:700; font-family:var(--font-display);
   overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
 }
-.topbar .tb-logo{height:26px; width:auto; object-fit:contain;}
+.topbar .tb-logo{height:34px; width:auto; object-fit:contain;}
 .tb-bell{position:relative;}
 .tb-badge{
   position:absolute; top:-2px; right:-2px;
@@ -360,10 +360,10 @@ input,select,textarea{font-family:var(--font-body);}
    ========================================================= */
 .splash-wrap{
   height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center;
-  background: linear-gradient(180deg, #FFFFFF 0%, #FFF7E6 100%);
+  background: #FFFFFF;
   padding:40px 30px; text-align:center;
 }
-.splash-wrap img{width:130px; margin-bottom:8px;}
+.splash-wrap img{width:190px; margin-bottom:8px;}
 .splash-wrap .tagline{color:var(--gray-700); font-weight:600; letter-spacing:.04em; margin-bottom:40px; font-size:13.5px;}
 .splash-actions{width:100%; display:flex; flex-direction:column; gap:12px;}
 
