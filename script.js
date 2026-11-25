@@ -47,8 +47,7 @@ const PAYMENT_METHODS = [
 ];
 
 // Occasion / promotional discounts (client-provided reference table).
-// Only ONE may be applied per reservation unless an Administrator turns
-// on "Allow Promo Stacking" in Admin > Settings.
+// Only ONE discount may be applied per reservation (promos do not stack).
 const DISCOUNTS = {
   first_time:  { label: "First-Time User",  percent: 20, hint: "Auto-applied on your first reservation" },
   valentines:  { label: "Valentine's Day",  percent: 20, hint: "Feb 14" },
@@ -78,7 +77,6 @@ function freshSampleRestaurants() {
       contact: "0917 143 8644",
       mood: ["Casual", "Family", "Friends"],
       atmosphere: ["Indoor", "Outdoor"],
-      seatingOptions: ["Indoor", "Outdoor", "Bar seating"],
       subscription: { active: true, paidAt: "2026-03-01" },
       menu: [
         { id: "m1", name: "Grilled Pork Chops in Chimichurri", description: "Char-grilled pork chops finished with fresh chimichurri, good for sharing (2–3 pax)", price: 585, category: "Main", image: "assets/menu/hygge-porkchops.jpg", available: true },
@@ -106,7 +104,6 @@ function freshSampleRestaurants() {
       contact: "(02) 8771 7777",
       mood: ["Romantic", "Business", "Special occasion"],
       atmosphere: ["Rooftop", "Scenic", "Indoor"],
-      seatingOptions: ["Indoor", "Window", "Private area"],
       subscription: { active: true, paidAt: "2026-02-10" },
       menu: [
         { id: "m5", name: "Korean Barbecue Set", description: "Barbecued chicken thigh fillet and thinly sliced beef short ribs with 3 Korean vegetable condiments, served with steamed rice", price: 600, category: "Main", image: "assets/menu/nest-korean-bbq-set.jpg", available: true },
@@ -134,7 +131,6 @@ function freshSampleRestaurants() {
       contact: "0945 239 3273",
       mood: ["Casual", "Family", "Friends"],
       atmosphere: ["Indoor", "Outdoor"],
-      seatingOptions: ["Indoor", "Outdoor"],
       subscription: { active: false, paidAt: null },
       menu: [
         { id: "m9", name: "Osso Buco Milanese", description: "House specialty — wine-braised shank with gremolata, served with risotto", price: 800, category: "Main", image: "assets/menu/virginias-osso-buco.jpg", available: true },
@@ -154,17 +150,15 @@ function freshSampleRestaurants() {
    2. STATE + PERSISTENCE
 --------------------------------------------------------------------- */
 const STATE = {
-  role: null,                 // 'customer' | 'restaurant' | 'admin'  (per browser tab)
+  role: null,                 // 'customer' | 'restaurant'  (per browser tab)
   customer: null,             // current demo customer
   restaurants: [],
   reservations: [],
   notifications: [],
-  settings: null,             // platform-wide settings (admin-controlled)
   activeRestaurantId: "r1",   // which restaurant the Restaurant Dashboard is managing
   draft: null,                // in-progress reservation being built by the customer
-  discoverFilters: { cuisine: null, mood: null, atmosphere: null, seating: null, price: null },
+  discoverFilters: { cuisine: null, mood: null, atmosphere: null, price: null },
   rResFilter: "all",
-  adminResFilter: "all",
   viewingReservationId: null,
   reschedulingId: null,
   cancellingId: null,
@@ -182,30 +176,18 @@ function saveCustomer() { localStorage.setItem("bb_customer", JSON.stringify(STA
 function saveRestaurants() { localStorage.setItem("bb_restaurants", JSON.stringify(STATE.restaurants)); }
 function saveReservations() { localStorage.setItem("bb_reservations", JSON.stringify(STATE.reservations)); }
 function saveNotifications() { localStorage.setItem("bb_notifications", JSON.stringify(STATE.notifications)); }
-function saveSettings() { localStorage.setItem("bb_settings", JSON.stringify(STATE.settings)); }
-
-function freshSettings() {
-  return {
-    allowPromoStacking: false,   // Admin-only toggle — "Prevent multiple promotional discounts
-                                  // from stacking unless the Administrator has explicitly enabled it"
-    pendingRestaurants: []       // restaurant names/notes submitted for Admin approval (demo)
-  };
-}
 
 function loadAllFromStorage() {
   const c = localStorage.getItem("bb_customer");
   const r = localStorage.getItem("bb_restaurants");
   const res = localStorage.getItem("bb_reservations");
   const n = localStorage.getItem("bb_notifications");
-  const s = localStorage.getItem("bb_settings");
   STATE.customer = c ? JSON.parse(c) : null;
   STATE.restaurants = r ? JSON.parse(r) : freshSampleRestaurants();
   STATE.reservations = res ? JSON.parse(res) : [];
   STATE.notifications = n ? JSON.parse(n) : [];
-  STATE.settings = s ? JSON.parse(s) : freshSettings();
   STATE.restaurantTermsAgreed = localStorage.getItem("bb_restaurant_terms_agreed") === "1";
   if (!r) saveRestaurants();
-  if (!s) saveSettings();
 }
 
 function findRestaurant(id) { return STATE.restaurants.find(r => r.id === id); }
@@ -239,8 +221,7 @@ const SCREEN_TITLES = {
   "screen-feedback-form": "Feedback",
   "screen-r-terms": "Partner Terms & Conditions",
   "screen-r-reservation-detail": "Reservation",
-  "screen-r-partnership": "Partnership",
-  "screen-a-reservation-detail": "Reservation"
+  "screen-r-partnership": "Partnership"
 };
 
 function show(id) {
@@ -263,7 +244,7 @@ function goBack() {
   const prev = historyStack.pop();
   const fallback = STATE.role === "restaurant"
     ? (STATE.restaurantTermsAgreed ? "screen-r-dashboard" : "screen-r-terms")
-    : STATE.role === "admin" ? "screen-a-dashboard" : "screen-home";
+    : "screen-home";
   show(prev || fallback);
 }
 function navTo(id) {
@@ -295,7 +276,7 @@ function updateTopbar(id) {
 }
 
 function updateNavHighlight(id) {
-  document.querySelectorAll("#navCustomer .nav-item, #navRestaurant .nav-item, #navAdmin .nav-item").forEach(btn => {
+  document.querySelectorAll("#navCustomer .nav-item, #navRestaurant .nav-item").forEach(btn => {
     btn.classList.toggle("active", btn.dataset.screen === id);
   });
 }
@@ -324,12 +305,6 @@ function renderScreen(id) {
     case "screen-r-restaurant": renderRProfile(); break;
     case "screen-r-subscription": renderRSubscription(); break;
     case "screen-r-partnership": renderPartnership(); break;
-    case "screen-a-dashboard": renderADashboard(); break;
-    case "screen-a-reservations": renderAResList(); break;
-    case "screen-a-reservation-detail": renderAResDetail(); break;
-    case "screen-a-restaurants": renderARestaurants(); break;
-    case "screen-a-accounts": renderAAccounts(); break;
-    case "screen-a-reports": renderAReports(); break;
   }
   updateNotifBadge();
 }
@@ -360,7 +335,6 @@ function setRole(role) {
   // Restaurant nav stays hidden until the Partner Terms are agreed to — this is the
   // role-based access gate, so a restaurant user cannot tap a nav item to skip past it.
   document.getElementById("navRestaurant").classList.toggle("hidden", !(role === "restaurant" && STATE.restaurantTermsAgreed));
-  document.getElementById("navAdmin").classList.toggle("hidden", role !== "admin");
   historyStack = [];
   if (role === "customer") {
     if (STATE.customer && STATE.customer.verified) enterCustomerApp();
@@ -368,8 +342,6 @@ function setRole(role) {
   } else if (role === "restaurant") {
     if (!STATE.restaurantTermsAgreed) show("screen-r-terms");
     else show("screen-r-dashboard");
-  } else if (role === "admin") {
-    show("screen-a-dashboard");
   }
 }
 
@@ -597,7 +569,6 @@ const FILTER_OPTIONS = {
   cuisine: ["International", "Asian Fusion", "European Bistro"],
   mood: ["Casual", "Family", "Friends", "Romantic", "Business", "Special occasion"],
   atmosphere: ["Indoor", "Outdoor", "Rooftop", "Scenic"],
-  seating: ["Indoor", "Outdoor", "Bar seating", "Window", "Private area"],
   price: ["₱", "₱₱", "₱₱₱"]
 };
 
@@ -613,7 +584,7 @@ function toggleDiscoverFilter(group, value) {
   renderDiscover();
 }
 function clearDiscoverFilters() {
-  STATE.discoverFilters = { cuisine: null, mood: null, atmosphere: null, seating: null, price: null };
+  STATE.discoverFilters = { cuisine: null, mood: null, atmosphere: null, price: null };
   document.getElementById("discoverSearch").value = "";
   renderDiscover();
 }
@@ -622,7 +593,6 @@ function renderDiscover() {
   buildFilterChips("cuisine", "filterCuisine");
   buildFilterChips("mood", "filterMood");
   buildFilterChips("atmosphere", "filterAtmosphere");
-  buildFilterChips("seating", "filterSeating");
   buildFilterChips("price", "filterPrice");
 
   const q = (document.getElementById("discoverSearch").value || "").toLowerCase();
@@ -632,7 +602,6 @@ function renderDiscover() {
     if (f.cuisine && r.cuisine !== f.cuisine) return false;
     if (f.mood && !r.mood.includes(f.mood)) return false;
     if (f.atmosphere && !r.atmosphere.includes(f.atmosphere)) return false;
-    if (f.seating && !r.seatingOptions.includes(f.seating)) return false;
     if (f.price && r.priceRange !== f.price) return false;
     if (q) {
       const inName = r.name.toLowerCase().includes(q);
@@ -655,7 +624,7 @@ function renderDiscover() {
 --------------------------------------------------------------------- */
 function openRestaurant(id) {
   if (!STATE.draft || STATE.draft.restaurantId !== id) {
-    STATE.draft = { restaurantId: id, items: [], diners: 2, date: "", time: "19:00", seating: "" };
+    STATE.draft = { restaurantId: id, items: [], diners: 2, date: "", time: "19:00" };
   }
   go("screen-restaurant-detail");
 }
@@ -680,7 +649,6 @@ function renderRestaurantDetail() {
   document.getElementById("rdDescription").textContent = r.description;
   document.getElementById("rdHours").textContent = r.hours;
   document.getElementById("rdAboutText").textContent = r.description + " Located at " + r.location + ". Contact: " + r.contact + ".";
-  document.getElementById("rdSeatingOptions").textContent = r.seatingOptions.join(", ");
   document.getElementById("rdPriceRange").textContent = r.priceRange;
 
   document.getElementById("rdMenuList").innerHTML = r.menu.map(m => {
@@ -748,10 +716,6 @@ function renderReservationForm() {
   document.getElementById("resDate").min = new Date().toISOString().split("T")[0];
   document.getElementById("resTime").value = STATE.draft.time;
 
-  const sel = document.getElementById("resSeating");
-  sel.innerHTML = r.seatingOptions.map(s => `<option value="${s}">${s}</option>`).join("");
-  if (STATE.draft.seating) sel.value = STATE.draft.seating;
-
   const list = document.getElementById("orderItemsList");
   const noMsg = document.getElementById("noItemsMsg");
   if (STATE.draft.items.length === 0) {
@@ -780,7 +744,6 @@ function changeDiners(delta) {
 function readReservationFormInputs() {
   STATE.draft.date = document.getElementById("resDate").value;
   STATE.draft.time = document.getElementById("resTime").value;
-  STATE.draft.seating = document.getElementById("resSeating").value;
 }
 
 // hook: capture inputs right before leaving reservation-form screen
@@ -829,8 +792,7 @@ function getEligibleDiscountKeys() {
 function computePricing(restaurant, discountKeys) {
   const subtotal = cartSubtotal(restaurant);
   const keys = Array.isArray(discountKeys) ? discountKeys : (discountKeys ? [discountKeys] : []);
-  const allowStacking = !!(STATE.settings && STATE.settings.allowPromoStacking);
-  const applied = allowStacking ? keys.slice() : keys.slice(0, 1);
+  const applied = keys.slice(0, 1);   // promos never stack
   let discountPercent = applied.reduce((s, k) => s + (DISCOUNTS[k] ? DISCOUNTS[k].percent : 0), 0);
   if (discountPercent > 100) discountPercent = 100;
   const discountLabel = applied.map(k => DISCOUNTS[k] ? DISCOUNTS[k].label : k).join(" + ") || null;
@@ -851,9 +813,6 @@ function computePricing(restaurant, discountKeys) {
 
 function renderDiscountPicker() {
   const eligible = getEligibleDiscountKeys();
-  const allowStacking = !!(STATE.settings && STATE.settings.allowPromoStacking);
-  document.getElementById("revStackHint").style.display = allowStacking ? "inline" : "none";
-
   const el = document.getElementById("revDiscountPicker");
   el.innerHTML = Object.keys(DISCOUNTS).map(key => {
     const d = DISCOUNTS[key];
@@ -870,12 +829,9 @@ function renderDiscountPicker() {
   }).join("");
 }
 function toggleDiscountKey(key) {
-  const allowStacking = !!(STATE.settings && STATE.settings.allowPromoStacking);
   const idx = STATE.selectedDiscountKeys.indexOf(key);
   if (idx > -1) {
     STATE.selectedDiscountKeys.splice(idx, 1);
-  } else if (allowStacking) {
-    STATE.selectedDiscountKeys.push(key);
   } else {
     STATE.selectedDiscountKeys = [key];
   }
@@ -888,7 +844,6 @@ function renderReviewReservation() {
   document.getElementById("revDate").textContent = formatDate(STATE.draft.date);
   document.getElementById("revTime").textContent = formatTime(STATE.draft.time);
   document.getElementById("revDiners").textContent = STATE.draft.diners;
-  document.getElementById("revSeating").textContent = STATE.draft.seating;
 
   document.getElementById("revItemsList").innerHTML = STATE.draft.items.length
     ? STATE.draft.items.map(i => {
@@ -949,7 +904,6 @@ function confirmMockPayment() {
     diners: STATE.draft.diners,
     date: STATE.draft.date,
     time: STATE.draft.time,
-    seating: STATE.draft.seating,
     items: STATE.draft.items.map(i => {
       const m = findMenuItem(r, i.itemId);
       return { name: m.name, price: m.price, qty: i.qty };
@@ -987,7 +941,6 @@ function confirmMockPayment() {
   if (p.discountKeys.includes("first_time")) { STATE.customer.firstReservationUsed = true; saveCustomer(); }
 
   addNotification("restaurant", "🔔", `New reservation from ${STATE.customer.name} at ${r.name}`, reservation.id);
-  addNotification("admin", "🔔", `New reservation ${reservation.id} from ${STATE.customer.name} at ${r.name}`, reservation.id);
 
   STATE.draft = null;
   STATE.selectedPaymentMethod = null;
@@ -1196,7 +1149,6 @@ function confirmCancelReservation() {
   r.cancellationFee = fee;
   saveReservations();
   addNotification("restaurant", "🔔", `${r.customerName} cancelled their reservation at ${r.restaurantName}.`, r.id);
-  addNotification("admin", "🔔", `Reservation ${r.id} was cancelled by ${r.customerName}. Cancellation fee: ${money(fee)}.`, r.id);
   closeModal("modalCancelConfirm");
   showToast("Reservation cancelled.", "✅");
   renderCustResDetail();
@@ -1211,7 +1163,7 @@ function rebookFromDeclined(id) {
       const found = rest.menu.find(m => m.name === i.name);
       return found ? { itemId: found.id, qty: i.qty } : null;
     }).filter(Boolean),
-    diners: r.diners, date: "", time: r.time, seating: r.seating
+    diners: r.diners, date: "", time: r.time
   };
   go("screen-restaurant-detail");
 }
@@ -1246,7 +1198,6 @@ function submitReschedule() {
   r.rescheduleRequest = { date, time, diners: STATE.reschDiners, status: "pending", fee };
   saveReservations();
   addNotification("restaurant", "🔔", `Reschedule request from ${r.customerName} for ${r.restaurantName}`, r.id);
-  addNotification("admin", "🔔", `${r.customerName} requested to reschedule ${r.id} at ${r.restaurantName}.`, r.id);
   showToast("Reschedule request sent to the restaurant.", "📨");
   openCustResDetail(r.id);
 }
@@ -1392,7 +1343,6 @@ function renderRResDetail() {
   document.getElementById("rrdDate").textContent = formatDate(r.date);
   document.getElementById("rrdTime").textContent = formatTime(r.time);
   document.getElementById("rrdDiners").textContent = r.diners;
-  document.getElementById("rrdSeating").textContent = r.seating;
 
   document.getElementById("rrdItems").innerHTML = r.items.length
     ? r.items.map(i => `<div class="sum-row"><span>${i.qty}x ${i.name}</span><span>${money(i.price * i.qty)}</span></div>`).join("")
@@ -1464,7 +1414,6 @@ function confirmReservationWithTable() {
   r.declineReason = null;
   saveReservations();
   addNotification("customer", "🔔", `Your reservation at ${r.restaurantName} has been confirmed.`, r.id);
-  addNotification("admin", "🔔", `${r.restaurantName} confirmed reservation ${r.id}.`, r.id);
   document.getElementById("tableDeclineReason").value = "";
   closeModal("modalTableAvail");
   showToast("Reservation confirmed.", "✅");
@@ -1477,7 +1426,6 @@ function declineReservation() {
   r.declineReason = reason;
   saveReservations();
   addNotification("customer", "🔔", `Your reservation at ${r.restaurantName} was declined. Reason: ${reason}`, r.id);
-  addNotification("admin", "🔔", `${r.restaurantName} declined reservation ${r.id}. Reason: ${reason}`, r.id);
   document.getElementById("tableDeclineReason").value = "";
   closeModal("modalTableAvail");
   showToast("Reservation declined.", "❌");
@@ -1510,7 +1458,6 @@ function respondReschedule(approve) {
     r.status = r.priorStatus || "confirmed";
     r.declineReason = null;
     addNotification("customer", "🔔", `Your reschedule request for ${r.restaurantName} was approved. A 2% rescheduling fee of ${money(fee)} applies.`, r.id);
-    addNotification("admin", "🔔", `${r.restaurantName} approved the reschedule for ${r.id}. Fee collected: ${money(fee)}.`, r.id);
     showToast("Reschedule approved.", "✅");
   } else {
     const reason = (document.getElementById("reschDeclineReason").value || "").trim() || "Requested schedule is not available.";
@@ -1518,7 +1465,6 @@ function respondReschedule(approve) {
     r.rescheduleRequest.declineReason = reason;
     r.status = r.priorStatus || "confirmed";
     addNotification("customer", "🔔", `Your reschedule request for ${r.restaurantName} was declined. Reason: ${reason}`, r.id);
-    addNotification("admin", "🔔", `${r.restaurantName} declined the reschedule request for ${r.id}. Reason: ${reason}`, r.id);
     showToast("Reschedule declined.", "❌");
   }
   saveReservations();
@@ -1564,7 +1510,6 @@ function markServed(id) {
   r.served = true;
   saveReservations();
   addNotification("customer", "🍽️", `Your food has been served at ${r.restaurantName}. Enjoy!`, r.id);
-  addNotification("admin", "🍽️", `Reservation ${r.id} at ${r.restaurantName} marked as completed.`, r.id);
   showToast("Marked as served.", "🍽️");
   renderRResDetail();
 }
@@ -1661,7 +1606,6 @@ function renderRProfile() {
   document.getElementById("rpContact").value = r.contact;
   document.getElementById("rpHours").value = r.hours;
   document.getElementById("rpCuisine").value = r.cuisine;
-  document.getElementById("rpSeating").value = r.seatingOptions.join(", ");
 }
 function switchActiveRestaurant(id) {
   STATE.activeRestaurantId = id;
@@ -1676,7 +1620,6 @@ function saveRestaurantProfile() {
   r.contact = document.getElementById("rpContact").value.trim();
   r.hours = document.getElementById("rpHours").value.trim();
   r.cuisine = document.getElementById("rpCuisine").value.trim();
-  r.seatingOptions = document.getElementById("rpSeating").value.split(",").map(s => s.trim()).filter(Boolean);
   saveRestaurants();
   showToast("Restaurant profile updated.", "✅");
 }
@@ -1727,210 +1670,6 @@ function renderPartnership() {
 }
 
 /* ---------------------------------------------------------------------
-   14b. ADMINISTRATOR DASHBOARD
-   Role-based: this whole section is only reachable via setRole('admin').
-   Admin can monitor every reservation/restaurant/account across the
-   platform (shared localStorage keys), approve/decline reservations,
-   review cancellations & reschedules, and control the promo-stacking
-   setting. It never edits a restaurant's own menu/profile — that stays
-   restaurant-only, preserving role-based access control.
---------------------------------------------------------------------- */
-function allReservationsSorted() {
-  return [...STATE.reservations].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-}
-
-function renderADashboard() {
-  const all = STATE.reservations;
-  document.getElementById("aStatPending").textContent = all.filter(r => r.status === "pending").length;
-  document.getElementById("aStatConfirmed").textContent = all.filter(r => r.status === "confirmed").length;
-  document.getElementById("aStatResch").textContent = all.filter(r => r.status === "reschedule_requested").length;
-  document.getElementById("aStatCancelled").textContent = all.filter(r => r.status === "cancelled").length;
-  document.getElementById("aStatCompleted").textContent = all.filter(r => r.served).length;
-  document.getElementById("aStatRestaurants").textContent = STATE.restaurants.length;
-
-  const revenue = all.reduce((s, r) => s + (r.downPayment || 0), 0);
-  document.getElementById("aRevenueTotal").textContent = money(revenue);
-
-  const notifs = STATE.notifications.filter(n => n.role === "admin").slice(0, 8);
-  const el = document.getElementById("aDashNotifList");
-  if (notifs.length === 0) {
-    el.innerHTML = `<div class="empty-state"><div class="es-icon">🔔</div><h4>No activity yet</h4><p>Platform-wide events will appear here.</p></div>`;
-  } else {
-    el.innerHTML = notifs.map(n => `
-      <div class="notif-item ${n.read ? "" : "unread"}" style="cursor:pointer;" onclick="jumpToAdminNotifTarget('${n.reservationId || ""}')">
-        <div class="ni-icon">${n.icon}</div>
-        <div><h5>${n.text}</h5><p>${timeAgo(n.time)}</p></div>
-      </div>`).join("");
-  }
-}
-function jumpToAdminNotifTarget(resId) {
-  if (!resId || !findReservation(resId)) return;
-  openAResDetail(resId);
-}
-
-function setAdminResFilter(f) {
-  STATE.adminResFilter = f;
-  document.querySelectorAll("#aResFilterRow .filter-chip").forEach(b => b.classList.toggle("active", b.dataset.f === f));
-  renderAResList();
-}
-function renderAResList() {
-  let list = allReservationsSorted();
-  if (STATE.adminResFilter !== "all") {
-    if (STATE.adminResFilter === "completed") list = list.filter(r => r.served);
-    else list = list.filter(r => r.status === STATE.adminResFilter);
-  }
-  const el = document.getElementById("aResList");
-  if (list.length === 0) {
-    el.innerHTML = `<div class="empty-state"><div class="es-icon">📋</div><h4>No reservations here</h4><p>Try a different filter.</p></div>`;
-    return;
-  }
-  el.innerHTML = list.map(r => `
-    <div class="res-card">
-      <div class="rc-head">
-        <div><h4>${r.customerName}</h4><div class="rc-id">${r.id} · ${r.restaurantName}</div></div>
-        ${statusBadgeHTML(displayStatus(r))}
-      </div>
-      <div class="rc-line"><span>${formatDate(r.date)} · ${formatTime(r.time)}</span><span>${r.diners} diners</span></div>
-      <div class="rc-line"><span>${money(r.total)} total</span><span></span></div>
-      <button class="btn btn-outline btn-sm mt-8" style="width:100%;" onclick="openAResDetail('${r.id}')">View / Manage</button>
-    </div>`).join("");
-}
-
-function openAResDetail(id) {
-  STATE.viewingReservationId = id;
-  go("screen-a-reservation-detail");
-}
-function renderAResDetail() {
-  const r = findReservation(STATE.viewingReservationId);
-  if (!r) { navTo("screen-a-reservations"); return; }
-  document.getElementById("ardId").textContent = r.id;
-  document.getElementById("ardStatusBadge").outerHTML = statusBadgeHTML(displayStatus(r)).replace('class="badge', 'id="ardStatusBadge" class="badge');
-  document.getElementById("ardRestaurant").textContent = r.restaurantName;
-  document.getElementById("ardCustomer").textContent = r.customerName;
-  document.getElementById("ardMobile").textContent = r.customerMobile;
-  document.getElementById("ardDate").textContent = formatDate(r.date);
-  document.getElementById("ardTime").textContent = formatTime(r.time);
-  document.getElementById("ardDiners").textContent = r.diners;
-  document.getElementById("ardTotal").textContent = money(r.total);
-  document.getElementById("ardDown").textContent = money(r.downPayment);
-  document.getElementById("ardRemaining").textContent = r.remainingPaid ? "₱0 (Paid)" : money(r.remaining);
-  document.getElementById("ardMethod").textContent = paymentMethodLabel(r.paymentMethod);
-
-  const reasonField = document.getElementById("ardDeclineReasonField");
-  reasonField.style.display = (r.status === "pending") ? "block" : "none";
-  document.getElementById("ardDeclineReason").value = "";
-
-  document.getElementById("ardActionZone").innerHTML = buildAdminActions(r);
-}
-function buildAdminActions(r) {
-  if (r.status === "declined") return `<p class="small muted center mt-8">Declined.${r.declineReason ? ' Reason: "' + r.declineReason + '"' : ""}</p>`;
-  if (r.status === "cancelled") return `<p class="small muted center mt-8">Cancelled by customer. 20% fee: ${money(r.cancellationFee || 0)}.</p>`;
-  if (r.served) return `<p class="small muted center mt-8">✓ Completed.</p>`;
-  if (r.status === "pending") {
-    return `
-      <div class="btn-row">
-        <button class="btn btn-danger" onclick="adminDeclineReservation('${r.id}')">Decline</button>
-        <button class="btn btn-primary" onclick="adminApproveReservation('${r.id}')">Approve / Confirm</button>
-      </div>`;
-  }
-  if (r.status === "reschedule_requested") {
-    return `<p class="small muted center mt-8">Awaiting the restaurant's review of this reschedule request.</p>`;
-  }
-  return `<p class="small muted center mt-8">Being handled by the restaurant — Admin can monitor but does not need to act.</p>`;
-}
-function adminApproveReservation(id) {
-  const r = findReservation(id);
-  const table = TABLES[0];
-  r.status = "confirmed";
-  r.table = r.table || table;
-  r.declineReason = null;
-  saveReservations();
-  addNotification("customer", "🔔", `Your reservation at ${r.restaurantName} has been confirmed by BookaBite Administration.`, r.id);
-  addNotification("restaurant", "🔔", `Administrator confirmed reservation ${r.id}.`, r.id);
-  showToast("Reservation approved.", "✅");
-  renderAResDetail();
-}
-function adminDeclineReservation(id) {
-  const r = findReservation(id);
-  const reason = (document.getElementById("ardDeclineReason").value || "").trim();
-  if (!reason) { showToast("Please provide a reason for declining.", "⚠️"); return; }
-  r.status = "declined";
-  r.declineReason = reason;
-  saveReservations();
-  addNotification("customer", "🔔", `Your reservation at ${r.restaurantName} was declined by BookaBite Administration. Reason: ${reason}`, r.id);
-  addNotification("restaurant", "🔔", `Administrator declined reservation ${r.id}. Reason: ${reason}`, r.id);
-  showToast("Reservation declined.", "❌");
-  renderAResDetail();
-}
-
-function renderARestaurants() {
-  const el = document.getElementById("aRestaurantList");
-  el.innerHTML = STATE.restaurants.map(r => {
-    const resList = STATE.reservations.filter(x => x.restaurantId === r.id);
-    const revenue = resList.reduce((s, x) => s + (x.downPayment || 0), 0);
-    return `
-    <div class="card">
-      <div style="display:flex; align-items:center; gap:10px;">
-        <img src="${r.logo}" style="width:44px;height:44px;border-radius:12px;object-fit:cover;">
-        <div>
-          <h4 style="font-size:14.5px;">${r.name}</h4>
-          <p class="small muted">${r.cuisine} · ${r.location}</p>
-        </div>
-      </div>
-      <div class="divider"></div>
-      <div class="sum-row"><span>Subscription</span><span>${r.subscription.active ? "✅ Active" : "❌ Inactive"}</span></div>
-      <div class="sum-row"><span>Total Reservations</span><span>${resList.length}</span></div>
-      <div class="sum-row"><span>Fees Collected</span><span>${money(revenue)}</span></div>
-      <div class="sum-row"><span>Average Rating</span><span>${r.rating}</span></div>
-    </div>`;
-  }).join("");
-}
-
-function renderAAccounts() {
-  const custEl = document.getElementById("aCustomerAccounts");
-  if (STATE.customer) {
-    custEl.innerHTML = `
-      <div class="card">
-        <div class="sum-row"><span>Name</span><span>${STATE.customer.name}</span></div>
-        <div class="sum-row"><span>Mobile</span><span>${STATE.customer.mobile}</span></div>
-        <div class="sum-row"><span>Email</span><span>${STATE.customer.email}</span></div>
-        <div class="sum-row"><span>Verified</span><span>${STATE.customer.verified ? "✅ Yes" : "❌ No"}</span></div>
-      </div>`;
-  } else {
-    custEl.innerHTML = `<div class="empty-state"><div class="es-icon">👤</div><h4>No customer account yet</h4><p>Register as a customer in this demo to see an account here.</p></div>`;
-  }
-
-  document.getElementById("aRestaurantAccounts").innerHTML = STATE.restaurants.map(r => `
-    <div class="card">
-      <div class="sum-row"><span>Restaurant</span><span>${r.name}</span></div>
-      <div class="sum-row"><span>Contact</span><span>${r.contact}</span></div>
-      <div class="sum-row"><span>Location</span><span>${r.location}</span></div>
-      <div class="sum-row"><span>Subscription</span><span>${r.subscription.active ? "✅ Active" : "❌ Inactive"}</span></div>
-    </div>`).join("");
-}
-
-function renderAReports() {
-  const all = STATE.reservations;
-  document.getElementById("arTotalRes").textContent = all.length;
-  document.getElementById("arTotalResch").textContent = all.filter(r => r.rescheduleRequest).length;
-  document.getElementById("arTotalCancel").textContent = all.filter(r => r.status === "cancelled").length;
-  document.getElementById("arTotalSales").textContent = money(all.reduce((s, r) => s + (r.subtotal || 0), 0));
-  document.getElementById("arTotalVat").textContent = money(all.reduce((s, r) => s + (r.vatAmount || 0), 0));
-  document.getElementById("arTotalDiscount").textContent = money(all.reduce((s, r) => s + (r.discount || 0), 0));
-  document.getElementById("arTotalFees").textContent = money(all.reduce((s, r) => s + (r.downPayment || 0), 0));
-
-  document.getElementById("aStackingBadge").outerHTML = (STATE.settings.allowPromoStacking
-    ? `<span id="aStackingBadge" class="badge badge-confirmed">ON</span>`
-    : `<span id="aStackingBadge" class="badge badge-declined">OFF</span>`);
-}
-function toggleStacking() {
-  STATE.settings.allowPromoStacking = !STATE.settings.allowPromoStacking;
-  saveSettings();
-  showToast(`Promo stacking ${STATE.settings.allowPromoStacking ? "enabled" : "disabled"}.`, "🎟️");
-  renderAReports();
-}
-
-/* ---------------------------------------------------------------------
    15. HELPERS
 --------------------------------------------------------------------- */
 function formatDate(iso) {
@@ -1953,7 +1692,7 @@ function formatTime(t) {
    other's updates in real time, as required by the two-tab demo.
 --------------------------------------------------------------------- */
 window.addEventListener("storage", (e) => {
-  if (!["bb_customer", "bb_restaurants", "bb_reservations", "bb_notifications", "bb_settings"].includes(e.key)) return;
+  if (!["bb_customer", "bb_restaurants", "bb_reservations", "bb_notifications"].includes(e.key)) return;
   loadAllFromStorage();
   renderScreen(currentScreen);
   if (e.key === "bb_notifications") {
@@ -1970,19 +1709,17 @@ window.addEventListener("storage", (e) => {
 --------------------------------------------------------------------- */
 function init() {
   loadAllFromStorage();
-  const savedRole = sessionStorage.getItem("bb_role");
+  let savedRole = sessionStorage.getItem("bb_role");
+  if (savedRole !== "customer" && savedRole !== "restaurant") { sessionStorage.removeItem("bb_role"); savedRole = null; }
   if (savedRole) {
     STATE.role = savedRole;
     document.getElementById("navCustomer").classList.toggle("hidden", savedRole !== "customer");
     document.getElementById("navRestaurant").classList.toggle("hidden", !(savedRole === "restaurant" && STATE.restaurantTermsAgreed));
-    document.getElementById("navAdmin").classList.toggle("hidden", savedRole !== "admin");
     if (savedRole === "customer") {
       if (STATE.customer && STATE.customer.verified) { show("screen-home"); }
       else { show("screen-splash"); }
     } else if (savedRole === "restaurant") {
       show(STATE.restaurantTermsAgreed ? "screen-r-dashboard" : "screen-r-terms");
-    } else if (savedRole === "admin") {
-      show("screen-a-dashboard");
     }
   } else {
     show("screen-splash");

@@ -179,10 +179,6 @@
             <div class="chip-set" id="filterAtmosphere"></div>
           </div>
           <div class="filter-group">
-            <h5>Seating Choice</h5>
-            <div class="chip-set" id="filterSeating"></div>
-          </div>
-          <div class="filter-group">
             <h5>Price Range</h5>
             <div class="chip-set" id="filterPrice"></div>
           </div>
@@ -223,8 +219,7 @@
             <div class="card">
               <p class="small" style="line-height:1.7;" id="rdAboutText"></p>
               <div class="divider"></div>
-              <p class="small"><strong>Seating options:</strong> <span id="rdSeatingOptions"></span></p>
-              <p class="small mt-8"><strong>Price range:</strong> <span id="rdPriceRange"></span></p>
+              <p class="small"><strong>Price range:</strong> <span id="rdPriceRange"></span></p>
             </div>
           </div>
           <div id="rdPaneReviews" style="display:none;">
@@ -255,10 +250,6 @@
             <label>Reservation Time</label>
             <input type="time" id="resTime" value="19:00">
           </div>
-          <div class="field">
-            <label>Seating Preference</label>
-            <select id="resSeating"></select>
-          </div>
 
           <h2 class="section-title mt-16">Your Order</h2>
           <div id="orderItemsList"></div>
@@ -277,7 +268,6 @@
             <div class="sum-row"><span>Date</span><span id="revDate"></span></div>
             <div class="sum-row"><span>Time</span><span id="revTime"></span></div>
             <div class="sum-row"><span>Number of diners</span><span id="revDiners"></span></div>
-            <div class="sum-row"><span>Seating</span><span id="revSeating"></span></div>
           </div>
 
           <div class="card">
@@ -287,11 +277,10 @@
 
           <div class="section-title with-link" style="font-size:14px;">
             <span>Promo / Discount</span>
-            <a id="revStackHint" style="display:none;">Stacking allowed</a>
           </div>
           <div class="card">
             <div id="revDiscountPicker"></div>
-            <p class="small muted mt-8">Only one promo applies per reservation, unless an Administrator has enabled promo stacking.</p>
+            <p class="small muted mt-8">Only one promo applies per reservation.</p>
           </div>
 
           <div class="card">
@@ -597,7 +586,6 @@
             <div class="sum-row"><span>Date</span><span id="rrdDate"></span></div>
             <div class="sum-row"><span>Time</span><span id="rrdTime"></span></div>
             <div class="sum-row"><span>Diners</span><span id="rrdDiners"></span></div>
-            <div class="sum-row"><span>Seating pref.</span><span id="rrdSeating"></span></div>
           </div>
 
           <div class="card">
@@ -637,7 +625,6 @@
           <div class="field"><label>Contact Number</label><input type="text" id="rpContact"></div>
           <div class="field"><label>Opening Hours</label><input type="text" id="rpHours"></div>
           <div class="field"><label>Cuisine</label><input type="text" id="rpCuisine"></div>
-          <div class="field"><label>Seating Options (comma separated)</label><input type="text" id="rpSeating"></div>
 
           <button class="btn btn-primary" onclick="saveRestaurantProfile()">Save Changes</button>
 
@@ -674,122 +661,6 @@
           <div id="partnershipSteps"></div>
         </section>
 
-        <!-- =========================================================
-             ADMINISTRATOR SCREENS
-             ========================================================= -->
-
-        <!-- ---------- A: DASHBOARD ---------- -->
-        <section class="screen" id="screen-a-dashboard">
-          <h2 class="section-title">Administrator Overview</h2>
-          <div class="stat-grid mt-8">
-            <div class="stat-card accent"><div class="stat-num" id="aStatPending">0</div><div class="stat-label">Pending Review</div></div>
-            <div class="stat-card"><div class="stat-num" id="aStatConfirmed">0</div><div class="stat-label">Confirmed</div></div>
-            <div class="stat-card"><div class="stat-num" id="aStatResch">0</div><div class="stat-label">Reschedule Requests</div></div>
-            <div class="stat-card"><div class="stat-num" id="aStatCancelled">0</div><div class="stat-label">Cancelled</div></div>
-            <div class="stat-card"><div class="stat-num" id="aStatCompleted">0</div><div class="stat-label">Completed</div></div>
-            <div class="stat-card"><div class="stat-num" id="aStatRestaurants">0</div><div class="stat-label">Partner Restaurants</div></div>
-          </div>
-
-          <div class="card mt-16">
-            <p class="small muted" style="margin-bottom:8px;">Platform Revenue (Reservation Fees Collected)</p>
-            <h3 id="aRevenueTotal" style="font-size:20px;"></h3>
-          </div>
-
-          <div class="section-title with-link mt-16"><span>Recent Activity</span><a onclick="navTo('screen-a-reservations')">View all reservations</a></div>
-          <div id="aDashNotifList"></div>
-        </section>
-
-        <!-- ---------- A: ALL RESERVATIONS ---------- -->
-        <section class="screen" id="screen-a-reservations">
-          <h2 class="section-title">All Reservations</h2>
-          <div class="filter-chip-row" id="aResFilterRow">
-            <button class="filter-chip active" data-f="all" onclick="setAdminResFilter('all')">All</button>
-            <button class="filter-chip" data-f="pending" onclick="setAdminResFilter('pending')">Pending</button>
-            <button class="filter-chip" data-f="confirmed" onclick="setAdminResFilter('confirmed')">Confirmed</button>
-            <button class="filter-chip" data-f="declined" onclick="setAdminResFilter('declined')">Declined</button>
-            <button class="filter-chip" data-f="reschedule_requested" onclick="setAdminResFilter('reschedule_requested')">Reschedule</button>
-            <button class="filter-chip" data-f="cancelled" onclick="setAdminResFilter('cancelled')">Cancelled</button>
-            <button class="filter-chip" data-f="completed" onclick="setAdminResFilter('completed')">Completed</button>
-          </div>
-          <div id="aResList"></div>
-        </section>
-
-        <!-- ---------- A: RESERVATION DETAIL ---------- -->
-        <section class="screen" id="screen-a-reservation-detail">
-          <div class="card">
-            <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-              <div>
-                <p class="small muted">Reservation ID</p>
-                <h3 id="ardId" style="font-family:var(--font-display); font-size:16px;"></h3>
-              </div>
-              <span class="badge" id="ardStatusBadge"></span>
-            </div>
-            <div class="divider"></div>
-            <div class="sum-row"><span>Restaurant</span><span id="ardRestaurant"></span></div>
-            <div class="sum-row"><span>Customer</span><span id="ardCustomer"></span></div>
-            <div class="sum-row"><span>Mobile</span><span id="ardMobile"></span></div>
-            <div class="sum-row"><span>Date</span><span id="ardDate"></span></div>
-            <div class="sum-row"><span>Time</span><span id="ardTime"></span></div>
-            <div class="sum-row"><span>Diners</span><span id="ardDiners"></span></div>
-          </div>
-          <div class="card">
-            <div class="sum-row"><span>Total Cost</span><span id="ardTotal"></span></div>
-            <div class="sum-row"><span>Reservation Fee (50%)</span><span id="ardDown"></span></div>
-            <div class="sum-row"><span>Remaining Balance (50%)</span><span id="ardRemaining"></span></div>
-            <div class="sum-row"><span>Payment Method</span><span id="ardMethod"></span></div>
-          </div>
-          <div class="field" id="ardDeclineReasonField" style="display:none;">
-            <label>Reason for Decline</label>
-            <textarea id="ardDeclineReason" rows="2" placeholder="e.g. No available table for this schedule"></textarea>
-          </div>
-          <div id="ardActionZone"></div>
-        </section>
-
-        <!-- ---------- A: PARTNER RESTAURANTS ---------- -->
-        <section class="screen" id="screen-a-restaurants">
-          <h2 class="section-title">Partner Restaurants</h2>
-          <div id="aRestaurantList"></div>
-        </section>
-
-        <!-- ---------- A: ACCOUNTS ---------- -->
-        <section class="screen" id="screen-a-accounts">
-          <h2 class="section-title">Accounts</h2>
-          <div class="section-title" style="font-size:14px;">Customer Accounts</div>
-          <div id="aCustomerAccounts"></div>
-          <div class="section-title mt-16" style="font-size:14px;">Restaurant Accounts</div>
-          <div id="aRestaurantAccounts"></div>
-        </section>
-
-        <!-- ---------- A: REPORTS & SETTINGS ---------- -->
-        <section class="screen" id="screen-a-reports">
-          <h2 class="section-title">Reports &amp; Statistics</h2>
-          <div class="card">
-            <div class="sum-row"><span>Total Reservations</span><span id="arTotalRes"></span></div>
-            <div class="sum-row"><span>Total Rebookings / Reschedules</span><span id="arTotalResch"></span></div>
-            <div class="sum-row"><span>Total Cancellations</span><span id="arTotalCancel"></span></div>
-            <div class="sum-row"><span>Total Food Sales (Subtotal)</span><span id="arTotalSales"></span></div>
-            <div class="sum-row"><span>Total VAT Collected</span><span id="arTotalVat"></span></div>
-            <div class="sum-row"><span>Total Discounts Given</span><span id="arTotalDiscount"></span></div>
-            <div class="sum-row total"><span>Reservation Fees Collected</span><span id="arTotalFees"></span></div>
-          </div>
-
-          <div class="section-title mt-16" style="font-size:14px;">Promotions</div>
-          <div class="card">
-            <div class="list-row" style="border-bottom:none; cursor:pointer;" onclick="toggleStacking()">
-              <div class="lr-left"><span class="lr-icon">🎟️</span> Allow Promo Stacking</div>
-              <span class="badge" id="aStackingBadge"></span>
-            </div>
-          </div>
-
-          <div class="section-title mt-16" style="font-size:14px;">Platform Configuration</div>
-          <div class="card">
-            <div class="sum-row"><span>VAT Rate</span><span>12%</span></div>
-            <div class="sum-row"><span>Reservation Fee Rate</span><span>50%</span></div>
-            <div class="sum-row"><span>Cancellation Fee Rate</span><span>20%</span></div>
-            <div class="sum-row"><span>Rescheduling Fee Rate</span><span>2%</span></div>
-          </div>
-        </section>
-
       </div>
 
       <!-- ============ BOTTOM NAV — CUSTOMER ============ -->
@@ -810,15 +681,6 @@
         <button class="nav-item" data-screen="screen-r-subscription" onclick="navTo('screen-r-subscription')"><span class="nav-icon">💳</span>Subscription</button>
       </div>
 
-      <!-- ============ BOTTOM NAV — ADMINISTRATOR ============ -->
-      <div class="bottom-nav hidden" id="navAdmin">
-        <button class="nav-item" data-screen="screen-a-dashboard" onclick="navTo('screen-a-dashboard')"><span class="nav-icon">🏠</span>Dashboard</button>
-        <button class="nav-item" data-screen="screen-a-reservations" onclick="navTo('screen-a-reservations')"><span class="nav-icon">📋</span>Reservations</button>
-        <button class="nav-item" data-screen="screen-a-restaurants" onclick="navTo('screen-a-restaurants')"><span class="nav-icon">🏪</span>Restaurants</button>
-        <button class="nav-item" data-screen="screen-a-accounts" onclick="navTo('screen-a-accounts')"><span class="nav-icon">👥</span>Accounts</button>
-        <button class="nav-item" data-screen="screen-a-reports" onclick="navTo('screen-a-reports')"><span class="nav-icon">📊</span>Reports</button>
-      </div>
-
       <!-- ============ DEMO FAB ============ -->
       <button class="demo-fab" onclick="openModal('modalDemo')">🎛️ Demo</button>
 
@@ -833,7 +695,6 @@
           <div class="btn-row" style="margin-bottom:18px; flex-wrap:wrap;">
             <button class="btn btn-outline" onclick="setRole('customer')">👤 Customer</button>
             <button class="btn btn-outline" onclick="setRole('restaurant')">🍽️ Restaurant</button>
-            <button class="btn btn-outline" onclick="setRole('admin')">🛡️ Administrator</button>
           </div>
           <div class="divider"></div>
           <button class="btn btn-dark mt-12" onclick="loadSampleData(true)">Load Sample Data</button>
