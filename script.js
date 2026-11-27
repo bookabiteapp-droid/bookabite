@@ -1064,6 +1064,7 @@ function renderCustResDetail() {
 
   document.getElementById("crdTimeline").innerHTML = buildTimeline(r);
   document.getElementById("crdActions").innerHTML = buildCustActions(r);
+  renderCustLocationCard(r);
 }
 
 function buildTimeline(r) {
@@ -1147,6 +1148,8 @@ function confirmCancelReservation() {
   r.priorStatus = r.status;
   r.status = "cancelled";
   r.cancellationFee = fee;
+  r.tracking = null;
+  stopLocationWatch();
   saveReservations();
   addNotification("restaurant", "🔔", `${r.customerName} cancelled their reservation at ${r.restaurantName}.`, r.id);
   closeModal("modalCancelConfirm");
@@ -1324,6 +1327,7 @@ function renderRResList() {
       </div>
       <div class="rc-line"><span>${formatDate(r.date)} · ${formatTime(r.time)}</span><span>${r.diners} diners</span></div>
       <div class="rc-line"><span>${r.items.reduce((s, i) => s + i.qty, 0)} item(s) · ${money(r.total)}</span><span></span></div>
+      ${trackingLineForList(r)}
       <button class="btn btn-outline btn-sm mt-8" style="width:100%;" onclick="openRResDetail('${r.id}')">View Details</button>
     </div>`).join("");
 }
@@ -1352,6 +1356,7 @@ function renderRResDetail() {
   document.getElementById("rrdRemaining").textContent = r.remainingPaid ? "₱0 (Paid)" : money(r.remaining);
   document.getElementById("rrdMethod").textContent = paymentMethodLabel(r.paymentMethod);
 
+  document.getElementById("rrdLocationCard").innerHTML = buildRestaurantLocationCard(r);
   document.getElementById("rrdActionZone").innerHTML = buildRestaurantActions(r);
 
   if (r.feedback) {
@@ -1476,6 +1481,7 @@ function respondReschedule(approve) {
 function markArrived(id) {
   const r = findReservation(id);
   r.arrived = true;
+  r.tracking = null;
   saveReservations();
   addNotification("customer", "🔔", `You've been marked as arrived at ${r.restaurantName}.`, r.id);
   showToast("Customer marked as arrived.", "✅");
@@ -1667,6 +1673,195 @@ function renderPartnership() {
       </div>
       <div class="wf-body"><h5>${s[0]}</h5><p>${s[1]}</p></div>
     </div>`).join("");
+}
+
+/* ---------------------------------------------------------------------
+   14. SHARE MY LOCATION (optional, customer opt-in)
+   Lets a customer with a CONFIRMED reservation optionally share how far
+   away they are, so the restaurant knows when they are close.
+   Privacy: only the rounded distance + estimated arrival time are stored
+   and shown to the restaurant — never the customer's coordinates. Sharing
+   is off by default, can be stopped at any time, and stops automatically
+   when the customer is marked arrived or the reservation is cancelled.
+   Uses the browser Geolocation API (needs HTTPS or localhost).
+--------------------------------------------------------------------- */
+const NEARBY_KM = 1.0;          // restaurant is notified once the customer is within this distance
+const AVG_SPEED_KMH = 25;       // rough city driving speed used for the ETA estimate
+const ROAD_FACTOR = 1.3;        // straight-line distance -> approximate road distance
+const STALE_MIN = 5;            // location older than this is shown as "not updating"
+
+// Approximate restaurant coordinates (lat, lng). Please verify/adjust to the exact pin.
+const RESTAURANT_COORDS = {
+  r1: { lat: 14.3633, lng: 121.0560 },   // Hygge Restaurant — San Pedro, Laguna
+  r2: { lat: 14.4168, lng: 121.0386 },   // The Nest Dining in the Sky — Filinvest City, Alabang
+  r3: { lat: 14.3050, lng: 121.0480 }    // Virginia's Bistro — Mamplasan, Biñan
+};
+
+let locWatchId = null;
+let locWatchResId = null;
+let locPending = false;
+
+function haversineKm(lat1, lon1, lat2, lon2) {
+  const toRad = d => d * Math.PI / 180;
+  const dLat = toRad(lat2 - lat1), dLon = toRad(lon2 - lon1);
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+  return 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function canShareLocation(r) {
+  return !!r && r.status === "confirmed" && !r.arrived && !r.served;
+}
+
+function isSharing(r) {
+  return !!(r && r.tracking && r.tracking.sharing);
+}
+
+function stopLocationWatch() {
+  if (locWatchId !== null && navigator.geolocation) navigator.geolocation.clearWatch(locWatchId);
+  locWatchId = null;
+  locWatchResId = null;
+  locPending = false;
+}
+
+function startLocationSharing(id, quiet) {
+  const r = findReservation(id);
+  if (!canShareLocation(r)) return;
+  if (!navigator.geolocation) { showToast("Location is not supported on this device or browser.", "⚠️"); return; }
+  if (!RESTAURANT_COORDS[r.restaurantId]) { showToast("Location sharing isn't available for this restaurant.", "⚠️"); return; }
+  stopLocationWatch();
+  locPending = true;
+  locWatchResId = id;
+  if (!quiet) renderCustResDetail();
+  locWatchId = navigator.geolocation.watchPosition(
+    pos => onLocationUpdate(id, pos),
+    err => onLocationError(id, err),
+    { enableHighAccuracy: true, maximumAge: 15000, timeout: 20000 }
+  );
+}
+
+function onLocationUpdate(id, pos) {
+  const r = findReservation(id);     // always re-read: state may have been reloaded from storage
+  if (!canShareLocation(r)) { stopLocationWatch(); if (r) { r.tracking = null; saveReservations(); } return; }
+  const c = RESTAURANT_COORDS[r.restaurantId];
+  const km = haversineKm(pos.coords.latitude, pos.coords.longitude, c.lat, c.lng);
+  const prev = r.tracking || {};
+  const first = !prev.sharing;
+  r.tracking = {
+    sharing: true,
+    distanceKm: Math.round(km * 10) / 10,
+    etaMin: Math.max(1, Math.round((km * ROAD_FACTOR / AVG_SPEED_KMH) * 60)),
+    updatedAt: new Date().toISOString(),
+    nearbyNotified: !!prev.nearbyNotified
+  };
+  locPending = false;
+  if (km <= NEARBY_KM && !r.tracking.nearbyNotified) {
+    r.tracking.nearbyNotified = true;
+    addNotification("restaurant", "📍", `${r.customerName} is nearby — about ${r.tracking.distanceKm} km away (~${r.tracking.etaMin} min) for reservation ${r.id}.`, r.id);
+  }
+  saveReservations();
+  if (first && STATE.role === "customer") showToast("Location sharing is on.", "📍");
+  if (currentScreen === "screen-reservation-detail" && STATE.viewingReservationId === id) renderCustResDetail();
+}
+
+function onLocationError(id, err) {
+  const r = findReservation(id);
+  const denied = !!(err && err.code === 1);
+  // A temporary signal drop (code 2/3) while already sharing is ignored: the browser keeps
+  // trying, and the restaurant simply sees "Location not updating" until a fix comes back.
+  if (!denied && r && r.tracking && r.tracking.sharing) return;
+  stopLocationWatch();
+  if (r && r.tracking) { r.tracking = null; saveReservations(); }
+  showToast(denied
+    ? "Location permission was denied. You can allow it in your browser settings."
+    : "Couldn't get your location. Please try again.", "⚠️");
+  if (currentScreen === "screen-reservation-detail") renderCustResDetail();
+}
+
+function stopLocationSharing(id) {
+  stopLocationWatch();
+  const r = findReservation(id);
+  if (r) { r.tracking = null; saveReservations(); }
+  showToast("Location sharing stopped.", "📍");
+  renderCustResDetail();
+}
+
+/* Customer side card */
+function buildCustLocationCard(r) {
+  if (!canShareLocation(r)) return "";
+  if (isSharing(r) || locPending) {
+    const t = r.tracking || {};
+    const info = locPending && !t.sharing
+      ? `<p class="small muted mt-8">Finding your location…</p>`
+      : `<div class="sum-row"><span>Distance to restaurant</span><span>~${t.distanceKm} km</span></div>
+         <div class="sum-row"><span>Estimated arrival</span><span>~${t.etaMin} min</span></div>`;
+    return `
+    <div class="card">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h4 style="font-size:14.5px;">📍 Share My Location</h4>
+        <span class="badge badge-confirmed">Sharing</span>
+      </div>
+      ${info}
+      <p class="small muted mt-8">${r.restaurantName} can see your distance and estimated arrival time only — not your exact location.</p>
+      <button class="btn btn-outline mt-8" onclick="stopLocationSharing('${r.id}')">Stop Sharing</button>
+    </div>`;
+  }
+  return `
+    <div class="card">
+      <h4 style="font-size:14.5px;">📍 Share My Location <span class="muted small">(optional)</span></h4>
+      <p class="small muted mt-8">Let ${r.restaurantName} know when you're close so they can have your table ready. Only your distance and estimated arrival time are shared — never your exact location. You can stop anytime.</p>
+      <button class="btn btn-outline-yellow mt-8" onclick="startLocationSharing('${r.id}')">Share My Location</button>
+    </div>`;
+}
+
+function renderCustLocationCard(r) {
+  const el = document.getElementById("crdLocationCard");
+  if (!el) return;
+  // Resume after a page reload (the browser remembers the permission choice)
+  if (isSharing(r) && canShareLocation(r) && locWatchId === null && !locPending) {
+    startLocationSharing(r.id, true);
+  }
+  // Safety: stop if sharing is no longer allowed (arrived, cancelled, served…)
+  if (!canShareLocation(r) && (isSharing(r) || locWatchResId === r.id)) {
+    stopLocationWatch();
+    if (r.tracking) { r.tracking = null; saveReservations(); }
+  }
+  el.innerHTML = buildCustLocationCard(r);
+}
+
+/* Restaurant side */
+function trackingState(r) {
+  if (!canShareLocation(r) || !isSharing(r)) return null;
+  const t = r.tracking;
+  const ageMin = (Date.now() - new Date(t.updatedAt).getTime()) / 60000;
+  return { distanceKm: t.distanceKm, etaMin: t.etaMin, stale: ageMin > STALE_MIN, ageMin: Math.max(0, Math.round(ageMin)), nearby: t.distanceKm <= NEARBY_KM };
+}
+
+function buildRestaurantLocationCard(r) {
+  if (!canShareLocation(r)) return "";
+  const t = trackingState(r);
+  if (!t) {
+    return `<div class="card"><p class="small muted">📍 The customer hasn't shared their location.</p></div>`;
+  }
+  const badge = t.stale
+    ? `<span class="badge badge-pending">Not updating</span>`
+    : t.nearby ? `<span class="badge badge-confirmed">Nearby</span>` : `<span class="badge badge-arrived">On the way</span>`;
+  const updated = t.ageMin < 1 ? "just now" : t.ageMin + " min ago";
+  return `
+  <div class="card">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <h4 style="font-size:14.5px;">📍 Customer Location</h4>${badge}
+    </div>
+    <div class="sum-row"><span>Distance</span><span>~${t.distanceKm} km</span></div>
+    <div class="sum-row"><span>Estimated arrival</span><span>~${t.etaMin} min</span></div>
+    <p class="small muted mt-8">Last updated ${updated}. Shared voluntarily by the customer.</p>
+  </div>`;
+}
+
+function trackingLineForList(r) {
+  const t = trackingState(r);
+  if (!t) return "";
+  const txt = t.stale ? "📍 Location not updating" : t.nearby ? `📍 Nearby · ~${t.distanceKm} km (~${t.etaMin} min)` : `📍 On the way · ~${t.distanceKm} km (~${t.etaMin} min)`;
+  return `<div class="rc-line"><span>${txt}</span><span></span></div>`;
 }
 
 /* ---------------------------------------------------------------------

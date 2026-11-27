@@ -12,9 +12,11 @@ A restaurant reservation and pre-ordering prototype built as a **frontend-only**
 - Cost breakdown: Food Subtotal → Discount → 12% VAT → Total → 50% Reservation Fee → Remaining Balance
 - Mock payment (GCash, Credit Card, Debit Card) and a digital receipt
 - Reschedule (2% fee), cancel (20% fee), rebook a declined reservation, feedback, notifications
+- **Share My Location (optional):** on a confirmed reservation, share distance and estimated arrival so the restaurant knows when you're close
 
 **Restaurant (Partner)**
 - Partner Terms & Conditions gate before the dashboard is reachable
+- See a customer's distance, ETA and a "Nearby" alert when they opt in to share their location
 - Dashboard, reservations (confirm / decline with reason / assign table / mark served), menu management, restaurant profile, subscription, partnership workflow
 
 > Payments are **simulated**. No real gateway is connected and no card or e-wallet details are collected.
@@ -50,6 +52,15 @@ Opening `index.html` directly also works, but a local server is recommended so c
 2. In each tab, tap **🎛️ Demo** (bottom-right) and pick **Customer** in one and **Restaurant** in the other.
 3. Actions in one tab (e.g. a customer reserving) appear in the other automatically.
 4. Use **Reset Demo** in the Demo menu to clear all data.
+
+## Share My Location (privacy and setup)
+
+- Off by default. The customer must tap **Share My Location** and allow the browser prompt; they can stop at any time.
+- Only the rounded distance and estimated arrival time are stored and shown to the restaurant — **never the customer's coordinates**.
+- Sharing stops automatically when the customer is marked arrived or cancels.
+- The restaurant is notified once when the customer comes within 1 km (`NEARBY_KM` in `script.js`).
+- Needs HTTPS or `localhost` (GitHub Pages is HTTPS). Restaurant pin locations are in `RESTAURANT_COORDS` in `script.js` — adjust them to the exact coordinates.
+- To demo on a computer, use Chrome DevTools → **Sensors** → Location to fake a position.
 
 ## Configuration
 
