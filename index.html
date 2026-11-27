@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>BookaBite — book · dine · go</title>
+<link rel="stylesheet" href="assets/vendor/leaflet/leaflet.css">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -701,6 +702,7 @@
             <button class="btn btn-outline" onclick="setRole('restaurant')">🍽️ Restaurant</button>
           </div>
           <div class="divider"></div>
+          <button class="btn btn-outline-yellow mt-12" onclick="simulateCustomerTrip()">🚗 Simulate Customer Trip (demo)</button>
           <button class="btn btn-dark mt-12" onclick="loadSampleData(true)">Load Sample Data</button>
           <button class="btn btn-danger mt-12" onclick="resetDemo()">Reset Demo</button>
         </div>
@@ -836,6 +838,7 @@
   </div>
 </div>
 
+<script src="assets/vendor/leaflet/leaflet.js"></script>
 <script src="script.js"></script>
 </body>
 </html>

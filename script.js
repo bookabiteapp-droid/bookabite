@@ -1357,6 +1357,7 @@ function renderRResDetail() {
   document.getElementById("rrdMethod").textContent = paymentMethodLabel(r.paymentMethod);
 
   document.getElementById("rrdLocationCard").innerHTML = buildRestaurantLocationCard(r);
+  mountTrackingMap(document.querySelector("#rrdLocationCard .track-map-slot"), r);
   document.getElementById("rrdActionZone").innerHTML = buildRestaurantActions(r);
 
   if (r.feedback) {
@@ -1679,10 +1680,10 @@ function renderPartnership() {
    14. SHARE MY LOCATION (optional, customer opt-in)
    Lets a customer with a CONFIRMED reservation optionally share how far
    away they are, so the restaurant knows when they are close.
-   Privacy: only the rounded distance + estimated arrival time are stored
-   and shown to the restaurant — never the customer's coordinates. Sharing
-   is off by default, can be stopped at any time, and stops automatically
-   when the customer is marked arrived or the reservation is cancelled.
+   Privacy: only an APPROXIMATE position (rounded to ~100 m), the distance
+   and the estimated arrival time are stored and shown to the restaurant on
+   a map. Sharing is off by default, can be stopped at any time, and stops
+   automatically when the customer is marked arrived or cancels.
    Uses the browser Geolocation API (needs HTTPS or localhost).
 --------------------------------------------------------------------- */
 const NEARBY_KM = 1.0;          // restaurant is notified once the customer is within this distance
@@ -1717,6 +1718,7 @@ function isSharing(r) {
 }
 
 function stopLocationWatch() {
+  clearInterval(simTimer);
   if (locWatchId !== null && navigator.geolocation) navigator.geolocation.clearWatch(locWatchId);
   locWatchId = null;
   locWatchResId = null;
@@ -1729,6 +1731,7 @@ function startLocationSharing(id, quiet) {
   if (!navigator.geolocation) { showToast("Location is not supported on this device or browser.", "⚠️"); return; }
   if (!RESTAURANT_COORDS[r.restaurantId]) { showToast("Location sharing isn't available for this restaurant.", "⚠️"); return; }
   stopLocationWatch();
+  simResId = null;
   locPending = true;
   locWatchResId = id;
   if (!quiet) renderCustResDetail();
@@ -1740,14 +1743,20 @@ function startLocationSharing(id, quiet) {
 }
 
 function onLocationUpdate(id, pos) {
+  applyLocation(id, pos.coords.latitude, pos.coords.longitude);
+}
+
+function applyLocation(id, lat, lng) {
   const r = findReservation(id);     // always re-read: state may have been reloaded from storage
   if (!canShareLocation(r)) { stopLocationWatch(); if (r) { r.tracking = null; saveReservations(); } return; }
   const c = RESTAURANT_COORDS[r.restaurantId];
-  const km = haversineKm(pos.coords.latitude, pos.coords.longitude, c.lat, c.lng);
+  const km = haversineKm(lat, lng, c.lat, c.lng);
   const prev = r.tracking || {};
   const first = !prev.sharing;
   r.tracking = {
     sharing: true,
+    lat: Math.round(lat * 1000) / 1000,     // rounded to ~100 m on purpose
+    lng: Math.round(lng * 1000) / 1000,
     distanceKm: Math.round(km * 10) / 10,
     etaMin: Math.max(1, Math.round((km * ROAD_FACTOR / AVG_SPEED_KMH) * 60)),
     updatedAt: new Date().toISOString(),
@@ -1761,6 +1770,75 @@ function onLocationUpdate(id, pos) {
   saveReservations();
   if (first && STATE.role === "customer") showToast("Location sharing is on.", "📍");
   if (currentScreen === "screen-reservation-detail" && STATE.viewingReservationId === id) renderCustResDetail();
+  if (currentScreen === "screen-r-reservation-detail" && STATE.viewingReservationId === id) renderRResDetail();
+}
+
+/* Demo helper: moves a pretend customer from ~5 km away to the restaurant (no GPS needed) */
+let simTimer = null;
+let simResId = null;      // reservation that is (or was) driven by the demo simulation
+function simulateCustomerTrip() {
+  closeModal("modalDemo");
+  const cur = findReservation(STATE.viewingReservationId);
+  const r = canShareLocation(cur) ? cur : STATE.reservations.find(canShareLocation);
+  if (!r) { showToast("Make a reservation and have the restaurant confirm it first.", "⚠️"); return; }
+  const c = RESTAURANT_COORDS[r.restaurantId];
+  if (!c) return;
+  stopLocationWatch();
+  simResId = r.id;
+  const steps = 30, dLat = 0.035, dLng = -0.025;
+  let i = 0;
+  showToast("Simulating customer trip…", "🚗");
+  if (STATE.role === "customer") { STATE.viewingReservationId = r.id; go("screen-reservation-detail"); }
+  simTimer = setInterval(() => {
+    i++;
+    const f = Math.max(0, 1 - i / steps);
+    applyLocation(r.id, c.lat + dLat * f, c.lng + dLng * f + 0.004 * Math.sin(f * Math.PI));
+    if (i >= steps || !canShareLocation(findReservation(r.id))) clearInterval(simTimer);
+  }, 1000);
+}
+
+/* Map (Leaflet + OpenStreetMap). One map per reservation is created once and re-attached
+   after each re-render so it doesn't flicker. Non-interactive, auto-fits both points. */
+const TRACK_MAPS = {};
+function mountTrackingMap(slot, r) {
+  if (!slot || typeof L === "undefined") return;
+  const c = RESTAURANT_COORDS[r.restaurantId];
+  if (!c) return;
+  const key = slot.dataset.mapKey;
+  Object.keys(TRACK_MAPS).forEach(k => { if (k !== key) { TRACK_MAPS[k].map.remove(); delete TRACK_MAPS[k]; } });
+  let m = TRACK_MAPS[key];
+  if (!m) {
+    const el = document.createElement("div");
+    el.className = "track-map";
+    const map = L.map(el, { zoomControl: false, dragging: false, touchZoom: false, scrollWheelZoom: false,
+                            doubleClickZoom: false, boxZoom: false, keyboard: false }).setView([c.lat, c.lng], 15);
+    map.attributionControl.setPrefix(false);
+    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: "© OpenStreetMap" }).addTo(map);
+    const rest = L.marker([c.lat, c.lng], {
+      icon: L.divIcon({ className: "", html: '<div class="bb-pin bb-pin-rest">🍴</div>', iconSize: [34, 34], iconAnchor: [17, 17] }),
+      interactive: false
+    }).addTo(map).bindTooltip(r.restaurantName, { permanent: true, direction: "top", offset: [0, -16], className: "bb-tip" });
+    m = TRACK_MAPS[key] = { map, el, rest, cust: null, line: null };
+  }
+  slot.appendChild(m.el);
+  m.map.invalidateSize();
+  const t = r.tracking;
+  if (t && t.lat != null) {
+    const p = [t.lat, t.lng];
+    if (!m.cust) {
+      m.cust = L.marker(p, {
+        icon: L.divIcon({ className: "", html: '<div class="bb-pin bb-pin-cust"></div>', iconSize: [18, 18], iconAnchor: [9, 9] }),
+        interactive: false
+      }).addTo(m.map).bindTooltip(String(r.customerName || "Customer").split(" ")[0], { permanent: true, direction: "bottom", offset: [0, 10], className: "bb-tip" });
+      m.line = L.polyline([p, [c.lat, c.lng]], { color: "#185FA5", weight: 4, dashArray: "1 9", lineCap: "round" }).addTo(m.map);
+    } else {
+      m.cust.setLatLng(p);
+      m.line.setLatLngs([p, [c.lat, c.lng]]);
+    }
+    m.map.fitBounds(L.latLngBounds([p, [c.lat, c.lng]]), { padding: [46, 46], maxZoom: 17, animate: false });
+  } else {
+    m.map.setView([c.lat, c.lng], 15, { animate: false });
+  }
 }
 
 function onLocationError(id, err) {
@@ -1801,14 +1879,15 @@ function buildCustLocationCard(r) {
         <span class="badge badge-confirmed">Sharing</span>
       </div>
       ${info}
-      <p class="small muted mt-8">${r.restaurantName} can see your distance and estimated arrival time only — not your exact location.</p>
+      ${t.sharing ? `<div class="track-map-slot" data-map-key="c-${r.id}"></div>` : ""}
+      <p class="small muted mt-8">${r.restaurantName} can see your approximate location (about 100 m), distance and estimated arrival time. Not shared once you stop or arrive.</p>
       <button class="btn btn-outline mt-8" onclick="stopLocationSharing('${r.id}')">Stop Sharing</button>
     </div>`;
   }
   return `
     <div class="card">
       <h4 style="font-size:14.5px;">📍 Share My Location <span class="muted small">(optional)</span></h4>
-      <p class="small muted mt-8">Let ${r.restaurantName} know when you're close so they can have your table ready. Only your distance and estimated arrival time are shared — never your exact location. You can stop anytime.</p>
+      <p class="small muted mt-8">Let ${r.restaurantName} know when you're close so they can have your table ready. They'll see your approximate location, distance and estimated arrival time on a map. You can stop anytime.</p>
       <button class="btn btn-outline-yellow mt-8" onclick="startLocationSharing('${r.id}')">Share My Location</button>
     </div>`;
 }
@@ -1817,7 +1896,7 @@ function renderCustLocationCard(r) {
   const el = document.getElementById("crdLocationCard");
   if (!el) return;
   // Resume after a page reload (the browser remembers the permission choice)
-  if (isSharing(r) && canShareLocation(r) && locWatchId === null && !locPending) {
+  if (isSharing(r) && canShareLocation(r) && locWatchId === null && !locPending && simResId !== r.id) {
     startLocationSharing(r.id, true);
   }
   // Safety: stop if sharing is no longer allowed (arrived, cancelled, served…)
@@ -1826,6 +1905,7 @@ function renderCustLocationCard(r) {
     if (r.tracking) { r.tracking = null; saveReservations(); }
   }
   el.innerHTML = buildCustLocationCard(r);
+  mountTrackingMap(el.querySelector(".track-map-slot"), r);
 }
 
 /* Restaurant side */
@@ -1851,7 +1931,8 @@ function buildRestaurantLocationCard(r) {
     <div style="display:flex; justify-content:space-between; align-items:center;">
       <h4 style="font-size:14.5px;">📍 Customer Location</h4>${badge}
     </div>
-    <div class="sum-row"><span>Distance</span><span>~${t.distanceKm} km</span></div>
+    <div class="track-map-slot" data-map-key="r-${r.id}"></div>
+    <div class="sum-row mt-8"><span>Distance</span><span>~${t.distanceKm} km</span></div>
     <div class="sum-row"><span>Estimated arrival</span><span>~${t.etaMin} min</span></div>
     <p class="small muted mt-8">Last updated ${updated}. Shared voluntarily by the customer.</p>
   </div>`;

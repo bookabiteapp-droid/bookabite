@@ -31,7 +31,8 @@ BookaBite/
 ├── assets/
 │   ├── logo/         BookaBite logo
 │   ├── restaurants/  Restaurant covers and logos
-│   └── menu/         Food photos and placeholder
+│   ├── menu/         Food photos and placeholder
+│   └── vendor/leaflet/  Map library (Leaflet)
 ├── .nojekyll
 ├── .gitignore
 └── README.md
@@ -53,14 +54,15 @@ Opening `index.html` directly also works, but a local server is recommended so c
 3. Actions in one tab (e.g. a customer reserving) appear in the other automatically.
 4. Use **Reset Demo** in the Demo menu to clear all data.
 
-## Share My Location (privacy and setup)
+## Share My Location (map tracking)
 
 - Off by default. The customer must tap **Share My Location** and allow the browser prompt; they can stop at any time.
-- Only the rounded distance and estimated arrival time are stored and shown to the restaurant — **never the customer's coordinates**.
-- Sharing stops automatically when the customer is marked arrived or cancels.
+- The restaurant sees a **live map** with the customer's approximate position, distance and ETA, plus a "Nearby" badge.
+- **Privacy:** the position is rounded to about 100 m before it is stored. Sharing stops automatically when the customer is marked arrived or cancels.
 - The restaurant is notified once when the customer comes within 1 km (`NEARBY_KM` in `script.js`).
 - Needs HTTPS or `localhost` (GitHub Pages is HTTPS). Restaurant pin locations are in `RESTAURANT_COORDS` in `script.js` — adjust them to the exact coordinates.
-- To demo on a computer, use Chrome DevTools → **Sensors** → Location to fake a position.
+- Map: [Leaflet](https://leafletjs.com/) (bundled in `assets/vendor/leaflet`, BSD-2 licence) with [OpenStreetMap](https://www.openstreetmap.org/copyright) tiles — free, no API key. The route line is straight-line, not turn-by-turn. OpenStreetMap's tile server is meant for light use; for heavy traffic switch to a tile provider.
+- **Demo without GPS:** open the **🎛️ Demo** menu and tap **Simulate Customer Trip** (needs a confirmed reservation). Keep the restaurant open in a second tab to watch it update.
 
 ## Configuration
 
